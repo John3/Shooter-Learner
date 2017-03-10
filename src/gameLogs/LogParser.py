@@ -1,5 +1,5 @@
 import numpy as np
-from itertools import tee, izip
+from itertools import tee
 import os
 
 
@@ -7,20 +7,20 @@ def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = tee(iterable)
     next(b, None)
-    return izip(a, b)
+    return zip(a, b)
 
 
 def action_value_map(x):
     return {
-        'None\r\n': 0.,
-        'MoveForward\r\n': 1.,
-        'MoveLeft\r\n': 2.,
-        'MoveRight\r\n': 3.,
-        'MoveBackward\r\n': 4.,
-        'TurnLeft\r\n': 5.,
-        'TurnRight\r\n': 6.,
-        'Shoot\r\n': 7.,
-        'Prepare\r\n': 8.
+        'None': 0.,
+        'MoveForward': 1.,
+        'MoveLeft': 2.,
+        'MoveRight': 3.,
+        'MoveBackward': 4.,
+        'TurnLeft': 5.,
+        'TurnRight': 6.,
+        'Shoot': 7.,
+        'Prepare': 8.
     }[x]
 
 
@@ -28,12 +28,12 @@ def parse(filename):
     output = []
 
     with open(filename) as f:
-        names = f.next()
+        names = next(f)
         players = names.split('|')
         player1Name = players[0].split(':')[1]
         player2Name = players[1].split(':')[1]
 
-        for line, next_line in pairwise(f):
+        for line, next_line in pairwise(f.read().splitlines()):
             next_line_split = next_line.split(':')
             log_type = next_line_split[0]
             damage_arr = list()
@@ -64,9 +64,18 @@ def parse(filename):
             output.append(res)
     save_arr = np.array(output)
     return save_arr
-arrays = []
-for subdir, dirs, files in os.walk("/home/baljenurface/Speciality/Tensorflow/Gamelogs"):
-    for file in files:
-        arrays.append(parse(subdir + "/" +file))
-print(arrays)
-np.savez_compressed("compressed", arrays)
+
+
+def parse_logs_in_folder(folder_name):
+    arrays = []
+    for subdir, dirs, files in os.walk(folder_name):
+        for file in files:
+            arrays.append(parse(subdir + "/" +file))
+    return arrays
+
+#arrays = []
+#for subdir, dirs, files in os.walk("/home/baljenurface/Speciality/Tensorflow/Gamelogs"):
+#    for file in files:
+#        arrays.append(parse(subdir + "/" +file))
+#print(arrays)
+#np.savez_compressed("compressed", arrays)
