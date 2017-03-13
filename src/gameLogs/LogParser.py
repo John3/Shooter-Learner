@@ -3,6 +3,47 @@ from itertools import tee
 import os
 
 
+class LogEntry:
+    def __init__(self, player, playerName, action, featureVector, damageArr, reward):
+        self.player = player
+        self.playerName = playerName
+        self.action = action
+        self.featureVector = featureVector
+        self.damageArr = damageArr
+        self.reward = reward
+
+    def toArray(self):
+        res = list()
+        res.append(self.player)
+        res.append(self.action)
+        res.extend(self.featureVector)
+        res.extend(self.damageArr)
+        res.append(self.reward)
+        return np.array(res)
+
+
+class LogFile:
+    def __init__(self, log_entries):
+        self.log_entries = log_entries
+        self.index = 0
+
+    def getBatch(self, size):
+        batch = self.log_entries[self.index:size]
+        if not batch:
+            return False
+
+        self.index += size
+        actions = list()
+        fvs = list()
+        rewardSum = 0
+        for entry in batch:
+            actions.append(entry.action)
+            fvs.append(entry.featureVector)
+            rewardSum += entry.reward
+
+        return actions, fvs, rewardSum
+
+
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = tee(iterable)
@@ -48,6 +89,14 @@ def parse(filename):
 
             if log_type == "R":
                 reward = float(next_line_split[1])
+            player = float(line_split[1])
+
+            if player == 0:
+                playername = player1Name
+            else:
+                playername = player2Name
+            action = action_value_map(line_split[3])
+            featureVector = map(lambda x: float(x), line_split[2].split(' '))
 
             damage_arr.append(playerDamage)
             damage_arr.append(damage)
@@ -55,15 +104,9 @@ def parse(filename):
             line_split = line.split(':')
             if line_split[0] == "D" or line_split[0] == "R":
                 continue
-            res = list()
-            res.append(float(line_split[1]))
-            res.append(action_value_map(line_split[3]))
-            res.extend(map(lambda x: float(x), line_split[2].split(' ')))
-            res.extend(damage_arr)
-            res.append(reward)
-            output.append(res)
-    save_arr = np.array(output)
-    return save_arr
+            output.append(LogEntry(player, playername, action,
+                                   featureVector, damage_arr, reward))
+    return LogFile(output)
 
 
 def parse_logs_in_folder(folder_name):
