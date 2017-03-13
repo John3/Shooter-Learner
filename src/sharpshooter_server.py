@@ -1,0 +1,35 @@
+import zmq
+
+
+class SharpShooterServer:
+
+    def __init__(self, callback):
+        self.port = "5556"
+        self.callback = callback
+
+    def start(self):
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.REP)
+        self.socket.bind("tcp://*:%s" % self.port)
+
+    def wait_for_game(self):
+        message = self.socket.recv_json()
+        if not message.success:
+            return self.wait_for_game()
+        else:
+            self.socket.send_json(message)
+            return True
+
+    def receive_message(self):
+        # Wait for the next request from the client
+        message = self.socket.recv_json()
+        self.socket.send_json(self.callback(message))
+
+    def start_game(self):
+        self.socket.recv_json()
+        self.socket.send_json({"type": "instruction", "command": "resetMission"})
+
+    def wait_for_event(self):
+        message = self.socket.recv_json()
+        self.socket.send_json({"type": "acknowledgement"})
+        return message
