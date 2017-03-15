@@ -4,7 +4,7 @@ import zmq
 class SharpShooterServer:
 
     def __init__(self, callback):
-        self.port = "5556"
+        self.port = "5542"
         self.callback = callback
 
     def start(self):
