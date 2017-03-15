@@ -6,27 +6,9 @@ from ddqrn_trainer import DDQRNTrainer
 from log_parser import parse_logs_in_folder
 from sharpshooter_server import SharpShooterServer
 from simple_ddqrn import DDQRN
-<<<<<<< HEAD
 from target_ddqrn import target_ddqrn
-=======
 
 import json
-
-# Functions for updating the target network todo Needs review (copy-pasta)
-def updateTargetGraph(tfVars,tau):
-    total_vars = len(tfVars)
-    op_holder = []
-    middle = total_vars // 2 # "Floor division"
-    for idx, var in enumerate(tfVars[0:middle]):
-        op_holder.append(tfVars[idx+middle].assign((var.value()*tau) + ((1-tau)*tfVars[idx+middle].value())))
-    return op_holder
-
-# Couldn't this simply assign the target to the primary network? I.e. copy all the weights
-def updateTarget(op_holder,sess):
-    for op in op_holder:
-        sess.run(op)
-# End todo
->>>>>>> 6c22296472a93644dea5c93f0776a02fe73dd2cb
 
 train_length = 8 #todo do we need this?
 fv_size = 15 # Size of the FeatureVector (state)
