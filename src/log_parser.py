@@ -27,6 +27,7 @@ class LogEntry:
         return "Entry: (p: %d, pn: %s, a: %d, fv: %s, da: %s, r: %s, e %s)" % \
                (self.player, self.player_name, self.action, self.feature_vector, self.damage_arr, self.reward, self.end)
 
+
 class LogFile:
     def __init__(self, log_entries):
         self.log_entries = log_entries

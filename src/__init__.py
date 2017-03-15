@@ -7,6 +7,7 @@ from log_parser import parse_logs_in_folder
 from sharpshooter_server import SharpShooterServer
 from simple_ddqrn import DDQRN
 
+import json
 
 # Functions for updating the target network todo Needs review (copy-pasta)
 def updateTargetGraph(tfVars,tau):
@@ -74,11 +75,13 @@ save_path = "./dqn"
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
-if load_model == True:
-    print('Loading Model...')
-    ckpt = tf.train.get_checkpoint_state(save_path)
-    saver.restore(sess, ckpt.model_checkpoint_path)
 for log_file in logs:
+    if load_model:
+        print('Loading Model...')
+        ckpt = tf.train.get_checkpoint_state(save_path)
+        saver.restore(sess, ckpt.model_checkpoint_path)
+        break
+
     episode_buffer = experience_buffer()
     j = 0 # The number of steps we have taken
     r_all = 0
@@ -145,9 +148,29 @@ print("Done training!")
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
 
-def server_cb(msg):
-    print("Received message: %s" % str(msg))
 
+def json_string_to_feature_vector(json_str):
+    fv = json.loads(json_str)
+    out = []
+    out.append(fv["DeltaRot"])
+    out.append(fv["DeltaMovedX"])
+    out.append(fv["DeltaMovedY"])
+    out.append(fv["VelX"])
+    out.append(fv["VelY"])
+    out.append(fv["DamageProb"])
+    out.append(fv["DeltaDamageProb"])
+    out.append(fv["DistanceToObstacleLeft"])
+    out.append(fv["DistanceToObstacleRight"])
+    out.append(fv["Health"])
+    out.append(fv["EnemyHealth"])
+    out.append(fv["TickCount"])
+    out.append(fv["TicksSinceObservedEnemy"])
+    out.append(fv["TicksSinceDamage"])
+    out.append(fv["ShootDelay"])
+    return out
+
+
+def server_cb(msg):
     if msg["type"] == "instruction":
         return {"type": "instruction", "command": "resetMission"}
 
@@ -163,8 +186,9 @@ def server_cb(msg):
         return {"response": "success"}
 
     if msg["type"] == "think":
-        a = sess.run(ddqrn.predict, feed_dict={input_frames: [msg.feature_vector]})[0]
-        return a
+        fv = json_string_to_feature_vector(msg["feature_vector"])
+        ps = sess.run(ddqrn.predict, feed_dict={input_frames: [fv]})
+        return ps[0].item()
 
     print("Unhandled message: " + str(msg))
     return 3
