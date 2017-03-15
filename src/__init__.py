@@ -6,7 +6,27 @@ from ddqrn_trainer import DDQRNTrainer
 from log_parser import parse_logs_in_folder
 from sharpshooter_server import SharpShooterServer
 from simple_ddqrn import DDQRN
+<<<<<<< HEAD
 from target_ddqrn import target_ddqrn
+=======
+
+import json
+
+# Functions for updating the target network todo Needs review (copy-pasta)
+def updateTargetGraph(tfVars,tau):
+    total_vars = len(tfVars)
+    op_holder = []
+    middle = total_vars // 2 # "Floor division"
+    for idx, var in enumerate(tfVars[0:middle]):
+        op_holder.append(tfVars[idx+middle].assign((var.value()*tau) + ((1-tau)*tfVars[idx+middle].value())))
+    return op_holder
+
+# Couldn't this simply assign the target to the primary network? I.e. copy all the weights
+def updateTarget(op_holder,sess):
+    for op in op_holder:
+        sess.run(op)
+# End todo
+>>>>>>> 6c22296472a93644dea5c93f0776a02fe73dd2cb
 
 train_length = 8 #todo do we need this?
 fv_size = 15 # Size of the FeatureVector (state)
@@ -54,7 +74,6 @@ else:
                     continue
 
             trainer.experience(s, a, r, s1, end)
-
             if end:
                 break
         trainer.end_episode()
@@ -65,9 +84,29 @@ print("Done training!")
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
 
-def server_cb(msg):
-    print("Received message: %s" % str(msg))
 
+def json_string_to_feature_vector(json_str):
+    fv = json.loads(json_str)
+    out = []
+    out.append(fv["DeltaRot"])
+    out.append(fv["DeltaMovedX"])
+    out.append(fv["DeltaMovedY"])
+    out.append(fv["VelX"])
+    out.append(fv["VelY"])
+    out.append(fv["DamageProb"])
+    out.append(fv["DeltaDamageProb"])
+    out.append(fv["DistanceToObstacleLeft"])
+    out.append(fv["DistanceToObstacleRight"])
+    out.append(fv["Health"])
+    out.append(fv["EnemyHealth"])
+    out.append(fv["TickCount"])
+    out.append(fv["TicksSinceObservedEnemy"])
+    out.append(fv["TicksSinceDamage"])
+    out.append(fv["ShootDelay"])
+    return out
+
+
+def server_cb(msg):
     if msg["type"] == "instruction":
         return {"type": "instruction", "command": "resetMission"}
 
@@ -83,8 +122,9 @@ def server_cb(msg):
         return {"response": "success"}
 
     if msg["type"] == "think":
-        a = sess.run(ddqrn.predict, feed_dict={input_frames: [msg.feature_vector]})[0]
-        return a
+        fv = json_string_to_feature_vector(msg["feature_vector"])
+        ps = sess.run(ddqrn.predict, feed_dict={input_frames: [fv]})
+        return ps[0].item()
 
     print("Unhandled message: " + str(msg))
     return 3
