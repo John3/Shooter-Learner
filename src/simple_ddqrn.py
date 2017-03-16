@@ -26,33 +26,33 @@ class DDQRN:
 
         input_shape_size = layer_input.get_shape().as_list()[1]
 
-        self.forward_W1 = tf.Variable(tf.random_normal([input_shape_size, input_shape_size]))
-        self.forward_b1 = tf.Variable(tf.random_normal([input_shape_size]))
+        forward_size_1 = self.output_size * 15
 
-        return tf.tanh(tf.nn.xw_plus_b(layer_input, self.forward_W1, self.forward_b1))
+        forward_W1 = tf.Variable(tf.random_normal([input_shape_size, forward_size_1]))
+        forward_b1 = tf.Variable(tf.random_normal([forward_size_1]))
+
+        forward_1 = tf.tanh(tf.nn.xw_plus_b(layer_input, forward_W1, forward_b1))
+
+        forward_size_2 = self.output_size * 5
+
+        forward_W2 = tf.Variable(tf.random_normal([forward_size_1, forward_size_2]))
+        forward_b2 = tf.Variable(tf.random_normal([forward_size_2]))
+
+        forward_2 = tf.tanh(tf.nn.xw_plus_b(forward_1, forward_W2, forward_b2))
+
+        return forward_2
 
     def build_output_layer(self, layer_input):
 
         input_shape_size = layer_input.get_shape().as_list()[1]
 
-        out_size1 = self.output_size
-
-        output_W1 = tf.Variable(tf.random_normal([input_shape_size, out_size1]))
-        output_b1 = tf.Variable(tf.random_normal([out_size1]))
-
-        output_1 = tf.tanh(tf.nn.xw_plus_b(layer_input, output_W1, output_b1))
-
-        output = output_1
-        out_shape_size = output.get_shape().as_list()[1]
-        print(output.get_shape().as_list())
-
         # Split the input into value and advantage
-        streamA, streamV = (output, output) #tf.split(self.output_1, 2, 1)
+        streamA, streamV = (layer_input, layer_input) #tf.split(self.output_1, 2, 1)
         #self.streamA = tf.contrib.layers.flatten(self.streamAC)
         #self.streamV = tf.contrib.layers.flatten(self.streamVC)
 
-        AW = tf.Variable(tf.random_normal([out_shape_size, self.output_size]))
-        VW = tf.Variable(tf.random_normal([out_shape_size, 1]))
+        AW = tf.Variable(tf.random_normal([input_shape_size, self.output_size]))
+        VW = tf.Variable(tf.random_normal([input_shape_size, 1]))
 
         advantage = tf.matmul(streamA, AW)
         value = tf.matmul(streamV, VW)

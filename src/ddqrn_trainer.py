@@ -35,7 +35,6 @@ class DDQRNTrainer:
         self.e = self.start_e
 
         self.saver = tf.train.Saver()
-        self.global_step = tf.Variable(0, trainable=False, name='global_step')
 
 
     def start_episode(self):
@@ -82,7 +81,6 @@ class DDQRNTrainer:
                     self.ddqrn.target_Q: target_Q,
                     self.ddqrn.actions: train_batch[:, 1]
                 })
-                self.global_step += 1
 
                 self.target.update(self.sess)  # Set the target network to be equal to the primary network
 
@@ -99,4 +97,4 @@ class DDQRNTrainer:
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.saver.save(self.sess, path + '/model', global_step=tf.train.global_step(self.sess, self.global_step))
+        self.saver.save(self.sess, path + '/model')

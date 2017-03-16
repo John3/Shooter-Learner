@@ -81,7 +81,7 @@ def action_value_map(x):
 
 
 def parse(filename):
-    output = []
+    output = ([], [])
 
     with open(filename) as f:
         names = next(f)
@@ -90,12 +90,15 @@ def parse(filename):
         player2Name = players[1].split(':')[1]
 
         for line, next_line in pairwise(f.read().splitlines()):
-            if line[0] == 'D':
-                continue
-
             line_split = line.split(':')
             next_line_split = next_line.split(':')
             log_type = next_line_split[0]
+
+            if line[0] == 'D':
+                if log_type == "R":
+                    output[int(next_line_split[1])][-1].reward = 1
+                continue
+
             damage_arr = list()
             player_damage = -1.
             damage = 0.
@@ -106,8 +109,6 @@ def parse(filename):
                 damage = float(next_line_split[2])
                 player_health = float(next_line_split[3])
 
-            if log_type == "R":
-                reward = float(next_line_split[1])
             player = float(line_split[1])
 
             if player == 0:
@@ -122,10 +123,11 @@ def parse(filename):
             damage_arr.append(player_health)
             if line_split[0] == "D" or line_split[0] == "R":
                 continue
-            output.append(LogEntry(player, player_name, action,
+            output[int(player)].append(LogEntry(player, player_name, action,
                                    feature_vector, damage_arr, reward))
-    output[-1].end = True
-    return LogFile(output)
+    output[0][-1].end = True
+    output[1][-1].end = True
+    return (LogFile(output[0]), LogFile([output[1]]))
 
 
 def parse_logs_in_folder(folder_name):

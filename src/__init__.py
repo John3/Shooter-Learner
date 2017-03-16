@@ -35,30 +35,39 @@ save_path = "./dqn"
 
 trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, input_frames)
 
+player_number = 0
+
 if load_model == True:
     trainer.load(save_path)
 else:
-    for log_file in logs:
+    print("Training on %s game logs" % len(logs))
+    for p, log_file_pair in enumerate(logs):
+        log_file_0, log_file_1 = log_file_pair
+        print("Training on log number %s..." % p, end="", flush=True)
         trainer.start_episode()
-        for i, event in enumerate(log_file):
-
+        for i, event in enumerate(log_file_0):
             # Observe play
             s = event.feature_vector
             a = event.action
-            s1 = log_file[i + 1].feature_vector
-            r = log_file[i + 1].reward
-            end = log_file[i + 1].end
+            s1 = log_file_0[i + 1].feature_vector
+            if log_file_0[i + 1].player == player_number:
+                r = log_file_0[i + 1].reward
 
-            if event.player == 1:
-                if end:
-                    break
-                else:
-                    continue
+            end = log_file_0[i + 1].end
+
+            if r > 0:
+                print(" Ooh reward!...", end="", flush=True)
 
             trainer.experience(s, a, r, s1, end)
             if end:
                 break
         trainer.end_episode()
+        print(" Done!")
+
+        #Periodically save the model.
+        if p % 5 == 0:
+            trainer.save(save_path)
+            print ("Saved Model")
 
 trainer.save(save_path)
 print("Done training!")
