@@ -13,17 +13,17 @@ import json
 train_length = 8 #todo do we need this?
 fv_size = 15 # Size of the FeatureVector (state)
 actions_size = 8 # Number of actions we can take
-batch_size = 32 # Number of experiences to use for each training step
+batch_size = 4 # Number of traces to use for each training step
+trace_length = 8 # How long each experience trace will be
 discount_factor = .99
 
 train_freq = 4 # How often do we train
 
-input_frames = tf.placeholder(shape=[None, fv_size], dtype=tf.float32)
-
-ddqrn = DDQRN(input_frames, train_length, fv_size, actions_size)
-ddqrn_target = target_ddqrn(DDQRN(input_frames, train_length, fv_size, actions_size), tf.trainable_variables())
-
 sess = tf.Session()
+
+ddqrn = DDQRN(sess, fv_size, fv_size, actions_size, "main")
+ddqrn_target = target_ddqrn(DDQRN(sess, fv_size, fv_size, actions_size, "target"), tf.trainable_variables())
+
 sess.run(tf.global_variables_initializer())
 
 ddqrn_target.update(sess) # Set the target network to be equal to the primary network
@@ -33,7 +33,7 @@ logs = parse_logs_in_folder("data/game_logs")
 load_model = False
 save_path = "./dqn"
 
-trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, input_frames)
+trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, batch_size, trace_length)
 
 player_number = 0
 
@@ -96,13 +96,15 @@ def json_string_to_feature_vector(json_str):
     out.append(fv["ShootDelay"])
     return out
 
-
 def server_cb(msg):
     if msg["type"] == "instruction":
         return {"type": "instruction", "command": "resetMission"}
 
     if msg["type"] == "event":
         if msg["message"] == "game_start":
+            # Reste state
+            ddqrn.state = (np.zeros([1, fv_size]), np.zeros([1, fv_size]))
+
             print("Game has started!")
             return {"response": "success"}
         if msg["message"] == "game_end":
@@ -114,8 +116,14 @@ def server_cb(msg):
 
     if msg["type"] == "think":
         fv = json_string_to_feature_vector(msg["feature_vector"])
-        ps = sess.run(ddqrn.predict, feed_dict={input_frames: [fv]})
-        return ps[0].item()
+
+        a, ddqrn.state = ddqrn.get_prediction_with_state(
+            input=[fv],
+            train_length=1,
+            state_in=ddqrn.state,
+            batch_size=1
+        )
+        return a[0].item()
 
     print("Unhandled message: " + str(msg))
     return 3

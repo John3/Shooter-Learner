@@ -11,6 +11,9 @@ class target_ddqrn:
         # Sets the target network to be equal to the primary network
         self.update_target(self.target_ops, sess)
 
+    def get_Q_out(self, input, train_length, batch_size, state_in):
+        return self.ddqrn.get_Q_out(input, train_length, batch_size, state_in)
+
     # Functions for updating the target network todo Needs review (copy-pasta)
     def update_target_graph(self, tfVars, tau):
         total_vars = len(tfVars)

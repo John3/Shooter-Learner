@@ -10,20 +10,22 @@ class DDQRNTrainer:
     pre_train_steps = 10000
 
     start_e = 1  # Starting probability of choosing a random action
-    end_e = 1  # Ending probability of choosing a random action
+    end_e = 0.1  # Ending probability of choosing a random action
     steps_e = 10000  # How many steps untill the probability of choosing a random action becomes end_e
 
     step_drop = (start_e - end_e) / steps_e
 
     train_freq = 4
-    batch_size = 10
     discount_factor = 0.99
 
-    def __init__(self, ddqrn, target, sess, input_frames):
+    fv_size = 15  # Size of the FeatureVector (state)
+
+    def __init__(self, ddqrn, target, sess, batch_size, trace_length):
         self.ddqrn = ddqrn
         self.target = target
         self.sess = sess
-        self.input_frames = input_frames
+        self.batch_size = batch_size
+        self.trace_length = trace_length
         self.buffer = ExperienceBuffer()
 
         self.j_list = []
@@ -63,27 +65,46 @@ class DDQRNTrainer:
                 self.e -= self.step_drop
 
             if self.total_steps % self.train_freq == 0:
-                train_batch = self.buffer.sample(self.batch_size)  # Get a random batch of experiences
+
+                # Reset the hidden state
+                state_train = (np.zeros([self.batch_size, self.fv_size]), np.zeros([self.batch_size, self.fv_size]))
+
+                train_batch = self.buffer.sample(self.batch_size, self.trace_length)  # Get a random batch of experiences
 
                 # Perform the Double-DQN update to the target Q-Values
                 # todo Lukas confused: Hvorfor skal de kun have "næste state" med?
-                Q1 = self.sess.run(self.ddqrn.predict, feed_dict={self.input_frames: np.vstack(train_batch[:, 3])})
+                Q1 = self.ddqrn.get_prediction(
+                    np.vstack(train_batch[:, 3]), # todo Divide by 255?
+                    batch_size=self.batch_size,
+                    train_length=self.trace_length,
+                    state_in=state_train
+                )
 
-                Q2 = self.sess.run(self.target.Q_out, feed_dict={self.input_frames: np.vstack(train_batch[:, 3])})
+                Q2 = self.target.get_Q_out(
+                    np.vstack(train_batch[:, 3]),
+                    batch_size=self.batch_size,
+                    train_length=self.trace_length,
+                    state_in=state_train
+                )
 
                 end_multiplier = -(train_batch[:, 4] - 1)
-                double_Q = Q2[range(self.batch_size), Q1]
+                double_Q = Q2[range(self.batch_size * self.trace_length), Q1]
                 target_Q = train_batch[:, 2] + (self.discount_factor * double_Q * end_multiplier)
 
                 # Update the network with the target values
-                _ = self.sess.run(self.ddqrn.update_model, feed_dict={
-                    self.input_frames: np.vstack(train_batch[:, 0]),
-                    self.ddqrn.target_Q: target_Q,
-                    self.ddqrn.actions: train_batch[:, 1]
-                })
+                _ = self.ddqrn.get_update_model(
+                    np.vstack(train_batch[:, 0]),
+                    target_Q=target_Q,
+                    actions=train_batch[:, 1],
+                    batch_size=self.batch_size,
+                    train_length=self.trace_length,
+                    state_in=state_train
+                )
 
-                self.target.update(self.sess)  # Set the target network to be equal to the primary network
+                if self.total_steps % 1000 == 0:
+                    self.target.update(self.sess)  # Set the target network to be equal to the primary network
 
+        self.target.update(self.sess)  # Set the target network to be equal to the primary network
         self.r_all += r
 
 

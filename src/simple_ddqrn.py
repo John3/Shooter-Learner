@@ -1,16 +1,25 @@
 import tensorflow as tf
+import numpy as np
 
 class DDQRN:
 
-    def __init__(self, input_frames, train_length, input_size, output_size):
-        self.train_length = train_length
+    def __init__(self, sess, fv_size, input_size, output_size, scope):
+        self.sess = sess
         self.output_size = output_size
         self.input_size = input_size
+        self.scope = scope
+
+        self.train_length = tf.placeholder(dtype=tf.int32)
+        self.batch_size = tf.placeholder(dtype=tf.int32)
 
         self.target_Q = tf.placeholder(shape=[None], dtype=tf.float32)
         self.actions = tf.placeholder(shape=[None], dtype=tf.int32)
+        self.input_frames = tf.placeholder(shape=[None, fv_size], dtype=tf.float32)
 
-        input_layer_output = self.build_input_layer(input_frames)
+        self.cell = tf.contrib.rnn.LSTMCell(num_units=input_size, state_is_tuple=True)
+        self.state = (np.zeros([1, fv_size]), np.zeros([1, fv_size]))
+
+        input_layer_output = self.build_input_layer(self.input_frames)
         lstm_layer_output = self.build_lstm_layer(input_layer_output)
         forward_layer_output = self.build_forward_layer(lstm_layer_output)
         self.predict, self.update_model, self.Q_out = self.build_output_layer(forward_layer_output)
@@ -20,7 +29,21 @@ class DDQRN:
         return layer_input
 
     def build_lstm_layer(self, layer_input):
-        return layer_input
+        input_shape_size = layer_input.get_shape().as_list()[1]
+
+        inputFlat = tf.reshape(tf.contrib.layers.flatten(layer_input), [self.batch_size, self.train_length, input_shape_size])
+
+        self.state_in = self.cell.zero_state(self.batch_size, tf.float32)
+        rnn, self.rnn_state = tf.nn.dynamic_rnn(
+            inputs=inputFlat,
+            cell=self.cell,
+            dtype=tf.float32,
+            initial_state=self.state_in,
+            scope=self.scope
+        )
+        rnn = tf.reshape(rnn, shape=[-1, input_shape_size])
+
+        return rnn
 
     def build_forward_layer(self, layer_input):
 
@@ -72,3 +95,37 @@ class DDQRN:
         update_model = self.trainer.minimize(loss)
 
         return predict, update_model, Q_out
+
+    def get_prediction(self, input, train_length, batch_size, state_in):
+        return self.sess.run(self.predict, feed_dict={
+            self.input_frames: input,
+            self.train_length: train_length,
+            self.batch_size: batch_size,
+            self.state_in: state_in
+        })
+
+    def get_prediction_with_state(self, input, train_length, batch_size, state_in):
+        return self.sess.run([self.predict, self.rnn_state], feed_dict={
+            self.input_frames: input,
+            self.train_length: train_length,
+            self.batch_size: batch_size,
+            self.state_in: state_in
+        })
+
+    def get_Q_out(self, input, train_length, batch_size, state_in):
+        return self.sess.run(self.Q_out, feed_dict={
+            self.input_frames: input,
+            self.train_length: train_length,
+            self.batch_size: batch_size,
+            self.state_in: state_in
+        })
+
+    def get_update_model(self, input, target_Q, actions, train_length, batch_size, state_in):
+        self.sess.run(self.update_model, feed_dict={
+            self.input_frames: input,
+            self.target_Q: target_Q,
+            self.actions: actions,
+            self.train_length: train_length,
+            self.batch_size: batch_size,
+            self.state_in: state_in
+        })
