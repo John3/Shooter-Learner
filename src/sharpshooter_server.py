@@ -3,9 +3,8 @@ import zmq
 
 class SharpShooterServer:
 
-    def __init__(self, callback):
+    def __init__(self):
         self.port = "5542"
-        self.callback = callback
 
     def start(self):
         self.context = zmq.Context()
@@ -20,10 +19,10 @@ class SharpShooterServer:
             self.socket.send_json(message)
             return True
 
-    def receive_message(self):
+    def receive_message(self, server):
         # Wait for the next request from the client
         message = self.socket.recv_json()
-        self.socket.send_json(self.callback(message))
+        self.socket.send_json(server.callback(message))
 
     def start_game(self):
         self.socket.recv_json()

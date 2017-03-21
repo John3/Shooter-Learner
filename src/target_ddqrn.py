@@ -1,3 +1,6 @@
+import tensorflow as tf
+
+
 class target_ddqrn:
 
     tau = 0.001 # Rate to update target network toward primary network
@@ -16,13 +19,14 @@ class target_ddqrn:
 
     # Functions for updating the target network todo Needs review (copy-pasta)
     def update_target_graph(self, tfVars, tau):
-        total_vars = len(tfVars)
-        op_holder = []
-        middle = total_vars // 2  # "Floor division"
-        for idx, var in enumerate(tfVars[0:middle]):
-            op_holder.append(
-                tfVars[idx + middle].assign((var.value() * tau) + ((1 - tau) * tfVars[idx + middle].value())))
-        return op_holder
+        with tf.name_scope("update_target_graph"):
+            total_vars = len(tfVars)
+            op_holder = []
+            middle = total_vars // 2  # "Floor division"
+            for idx, var in enumerate(tfVars[0:middle]):
+                op_holder.append(
+                    tfVars[idx + middle].assign((var.value() * tau) + ((1 - tau) * tfVars[idx + middle].value())))
+            return op_holder
 
     # Couldn't this simply assign the target to the primary network? I.e. copy all the weights
     def update_target(self, op_holder, sess):
