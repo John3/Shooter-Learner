@@ -20,6 +20,9 @@ class AIServer:
         self.rewards = 0
         self.result_tensor = tf.placeholder(tf.float32)
         self.result_summary = tf.summary.scalar('estimated_value', self.result_tensor)
+        self.action_tensor = tf.placeholder(tf.int32)
+        self.action_summary = tf.summary.histogram('selected_action', self.action_tensor)
+        self.last_enemy_health = 20
 
         self.game_has_ended = False
 
@@ -61,7 +64,7 @@ class AIServer:
                     r = 1
 
                 if self.training:
-                    train_count = self.ddqrn.sess.run([self.ddqrn.inc_train_count])
+                    train_count = self.ddqrn.sess.run([self.ddqrn.inc_train_count])[0]
                     self.trainer.experience(self.fv0, self.a, r, self.fv0, True)
                     self.trainer.end_episode()
                     if train_count % 10 == 0:
@@ -78,8 +81,14 @@ class AIServer:
         if msg["type"] == "think":
             fv1 = self.json_string_to_feature_vector(msg["feature_vector"])
 
+            enemy_health = fv1[10]
+
+            r = 0
+            if self.a == 7 and enemy_health < self.last_enemy_health:
+                r = 0.00001
+
             if self.fv0 is not None and self.training:
-                self.trainer.experience(self.fv0, self.a, 0, fv1, False)
+                self.trainer.experience(self.fv0, self.a, r, fv1, False)
 
             if np.random.rand(1) < self.trainer.e or self.trainer.total_steps < self.trainer.pre_train_steps:
                 self.ddqrn.state = self.ddqrn.get_state(
@@ -97,8 +106,16 @@ class AIServer:
                     batch_size=1
                 )
                 a = a[0].item()
+
+            if not self.training:
+                i = self.ddqrn.sess.run([self.ddqrn.evaluation_count])[0]
+                _, summary = self.ddqrn.sess.run([self.action_tensor, self.action_summary],
+                                                 feed_dict={self.action_tensor: a})
+                self.trainer.test_writer.add_summary(summary, i)
+
             self.fv0 = fv1
             self.a = a
+            self.last_enemy_health = enemy_health
             return a
 
         print("Unhandled message: " + str(msg))

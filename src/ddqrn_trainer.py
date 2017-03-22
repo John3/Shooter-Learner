@@ -39,6 +39,7 @@ class DDQRNTrainer:
         self.saver = tf.train.Saver()
 
         self.tensorboard_setup()
+        self.summary = None
 
     def start_episode(self):
         self.episode_buffer = ExperienceBuffer()
@@ -51,9 +52,10 @@ class DDQRNTrainer:
         self.j_list.append(self.j)
         self.r_list.append(self.r_all)
 
-        train_count = self.ddqrn.sess.run([self.ddqrn.train_count])[0]
-        if train_count % 10 == 0:
-            self.train_writer.add_summary(self.summary, train_count)
+        if self.summary is not None:
+            train_count = self.ddqrn.sess.run([self.ddqrn.train_count])[0]
+            if train_count % 10 == 0:
+                self.train_writer.add_summary(self.summary, train_count)
 
     def experience(self, s, a, r, s1, end):
         self.j += 1 # Increment the number of steps by one
@@ -104,10 +106,9 @@ class DDQRNTrainer:
                     state_in=state_train
                 )
 
-                if self.total_steps % 1000 == 0:
-                    self.target.update(self.sess)  # Set the target network to be equal to the primary network
+            if self.total_steps % 1000 == 0:
+                self.target.update(self.sess)  # Set the target network to be equal to the primary network
 
-        self.target.update(self.sess)  # Set the target network to be equal to the primary network
         self.r_all += r
 
     def load(self, path):

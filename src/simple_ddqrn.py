@@ -30,6 +30,8 @@ class DDQRN:
                 td_error = tf.square(self.target_Q - Q)
                 loss = tf.reduce_mean(td_error)
                 tf.summary.scalar("loss", loss, [scope])
+                tf.summary.scalar("Q", tf.reduce_mean(Q), [scope])
+                tf.summary.scalar("target_Q", tf.reduce_mean(self.target_Q), [scope])
 
             with tf.name_scope("training"):
                 self.trainer = tf.train.AdamOptimizer(learning_rate=0.0001)
@@ -110,6 +112,8 @@ class DDQRN:
 
             with tf.name_scope("prediction"):
                 predict = tf.argmax(Q_out, 1)
+
+                self.predict_summary = tf.summary.histogram("predictions", predict, [self.scope, "test"])
 
                 # We can obtain the loss when we are given the target Q value by taking the SSD between target and prediction
                 actions_onehot = tf.one_hot(self.actions, self.output_size, dtype=tf.float32)

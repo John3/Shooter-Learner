@@ -25,7 +25,7 @@ sess.run(tf.global_variables_initializer())
 
 ddqrn_target.update(sess)  # Set the target network to be equal to the primary network
 
-load_model = False
+load_model = True
 save_path = "./dqn"
 
 trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, batch_size, trace_length)
@@ -58,6 +58,10 @@ else:
             trainer.experience(s, a, r, s1, end)
             if end:
                 break
+
+        train_count = ddqrn.sess.run([ddqrn.inc_train_count])[0]
+        if train_count % 10 == 0:
+            trainer.save("./dqn")
         trainer.end_episode()
         print(" Done!")
 
@@ -81,6 +85,6 @@ i = 1
 while True:
     server.receive_message(ai_server)
     if ai_server.game_has_ended:
-        if i % 50 == 0:
-            ai_server.start_evaluation(10)
+        if i % 50000 == 0:
+            ai_server.start_evaluation(1000)
         i += 1
