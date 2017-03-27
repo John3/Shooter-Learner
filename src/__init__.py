@@ -9,7 +9,20 @@ from target_ddqrn import target_ddqrn
 
 train_length = 8  # todo do we need this?
 fv_size = 15  # Size of the FeatureVector (state)
-actions_size = 9  # Number of actions we can take
+
+action_to_string = {
+    0: "none",
+    1: "moveForward",
+    2: "moveLeft",
+    3: "moveRight",
+    4: "moveBackward",
+    5: "turnLeft",
+    6: "turnRight",
+    7: "shoot",
+    8: "prepare"
+}
+
+prediction_to_action = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 batch_size = 4  # Number of traces to use for each training step
 trace_length = 8  # How long each experience trace will be
 discount_factor = .99
@@ -18,8 +31,11 @@ train_freq = 4  # How often do we train
 
 sess = tf.Session()
 
-ddqrn = DDQRN(sess, fv_size, fv_size, actions_size, "main_DDQRN")
-ddqrn_target = target_ddqrn(DDQRN(sess, fv_size, fv_size, actions_size, "target_DDQRN"), tf.trainable_variables())
+ddqrn = DDQRN(sess, fv_size, fv_size, len(prediction_to_action), "main_DDQRN")
+ddqrn_target = target_ddqrn(
+    DDQRN(sess, fv_size, fv_size, len(prediction_to_action), "target_DDQRN"),
+    tf.trainable_variables()
+)
 
 sess.run(tf.global_variables_initializer())
 
@@ -77,7 +93,7 @@ print("Done training!")
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
 
-ai_server = AIServer(fv_size, actions_size, trainer, ddqrn)
+ai_server = AIServer(fv_size, prediction_to_action, trainer, ddqrn)
 
 server = SharpShooterServer()
 server.start()

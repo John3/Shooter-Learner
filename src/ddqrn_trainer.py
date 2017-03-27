@@ -58,6 +58,8 @@ class DDQRNTrainer:
                 self.train_writer.add_summary(self.summary, train_count)
 
     def experience(self, s, a, r, s1, end):
+        if r != 0:
+            print("Experienced a reward of: %s" % r)
         self.j += 1 # Increment the number of steps by one
         self.total_steps += 1
 

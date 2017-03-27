@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
+from external.act_cell import ACTCell
 
 class DDQRN:
 
@@ -18,7 +19,9 @@ class DDQRN:
             self.actions = tf.placeholder(name="actions", shape=[None], dtype=tf.int32)
             self.input_frames = tf.placeholder(name="input_frames", shape=[None, fv_size], dtype=tf.float32)
 
-            self.cell = tf.contrib.rnn.LSTMCell(num_units=input_size, state_is_tuple=True)
+            self.cell = tf.contrib.rnn.LSTMCell(num_units=input_size)
+            #self.cell = ACTCell(num_units=input_size, cell=self.inner_cell, epsilon=0.01,
+            #                    max_computation=50, batch_size=self.batch_size)
             self.state = (np.zeros([1, fv_size]), np.zeros([1, fv_size]))
 
             input_layer_output = self.build_input_layer(self.input_frames)
