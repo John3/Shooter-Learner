@@ -6,8 +6,8 @@ import tensorflow as tf
 
 class AIServer:
 
-    def __init__(self, fv_size, prediction_to_action, trainer, ddqrn):
-        self.fv_size = fv_size
+    def __init__(self, features, prediction_to_action, trainer, ddqrn):
+        self.features = features
         self.prediction_to_action = prediction_to_action
         self.trainer = trainer
         self.ddqrn = ddqrn
@@ -47,7 +47,7 @@ class AIServer:
         if msg["type"] == "event":
             if msg["message"] == "game_start":
                 # Reset state
-                self.ddqrn.state = (np.zeros([1, self.fv_size]), np.zeros([1, self.fv_size]))
+                self.ddqrn.state = (np.zeros([1, len(self.features)]), np.zeros([1, len(self.features)]))
                 if self.training:
                     self.trainer.start_episode()
 
@@ -121,24 +121,9 @@ class AIServer:
         print("Unhandled message: " + str(msg))
         return 3
 
-    @staticmethod
-    def json_string_to_feature_vector(json_str):
+    def json_string_to_feature_vector(self, json_str):
         fv = json.loads(json_str)
-        out = [
-            fv["DeltaRot"],
-            fv["DeltaMovedX"],
-            fv["DeltaMovedY"],
-            fv["VelX"],
-            fv["VelY"],
-            fv["DamageProb"],
-            fv["DeltaDamageProb"],
-            fv["DistanceToObstacleLeft"],
-            fv["DistanceToObstacleRight"],
-            fv["Health"],
-            fv["EnemyHealth"],
-            fv["TickCount"],
-            fv["TicksSinceObservedEnemy"],
-            fv["TicksSinceDamage"],
-            fv["ShootDelay"]
-        ]
+        out = []
+        for feature in self.features:
+            out.append(fv[feature])
         return out

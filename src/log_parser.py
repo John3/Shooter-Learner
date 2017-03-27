@@ -3,6 +3,26 @@ from itertools import tee
 import os
 
 
+def feature_index_map(x):
+    return {
+        "DeltaRot": 0,
+        "DeltaMovedX": 1,
+        "DeltaMovedY": 2,
+        "VelX": 3,
+        "VelY": 4,
+        "DamageProb": 5,
+        "DeltaDamageProb": 6,
+        "DistanceToObstacleLeft": 7,
+        "DistanceToObstacleRight": 8,
+        "Health": 9,
+        "EnemyHealth": 10,
+        "TickCount": 11,
+        "TicksSinceObservedEnemy": 12,
+        "TicksSinceDamage": 13,
+        "ShootDelay": 14
+    }[x]
+
+
 class LogEntry:
     def __init__(self, player, player_name, action, feature_vector, damage_arr, reward):
         self.player = player
@@ -12,6 +32,9 @@ class LogEntry:
         self.damage_arr = damage_arr
         self.reward = reward
         self.end = False
+
+    def get_feature_vector(self, features):
+        return [self.feature_vector[feature_index_map(x)] for x in features]
 
     def toArray(self):
         res = list()
@@ -128,6 +151,7 @@ def parse(filename):
     output[0][-1].end = True
     output[1][-1].end = True
     return (LogFile(output[0]), LogFile([output[1]]))
+
 
 
 def parse_logs_in_folder(folder_name):

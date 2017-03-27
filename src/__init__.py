@@ -22,6 +22,24 @@ action_to_string = {
     8: "prepare"
 }
 
+features = [
+    "DeltaRot",
+    "DeltaMovedX",
+    "DeltaMovedY",
+    "VelX",
+    "VelY",
+    "DamageProb",
+    "DeltaDamageProb",
+    "DistanceToObstacleLeft",
+    "DistanceToObstacleRight",
+    "Health",
+    "EnemyHealth",
+    "TickCount",
+    "TicksSinceObservedEnemy",
+    "TicksSinceDamage",
+    "ShootDelay",
+]
+
 prediction_to_action = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 batch_size = 4  # Number of traces to use for each training step
 trace_length = 8  # How long each experience trace will be
@@ -31,9 +49,9 @@ train_freq = 4  # How often do we train
 
 sess = tf.Session()
 
-ddqrn = DDQRN(sess, fv_size, fv_size, len(prediction_to_action), "main_DDQRN")
+ddqrn = DDQRN(sess, len(features), len(prediction_to_action), "main_DDQRN")
 ddqrn_target = target_ddqrn(
-    DDQRN(sess, fv_size, fv_size, len(prediction_to_action), "target_DDQRN"),
+    DDQRN(sess, len(features), len(prediction_to_action), "target_DDQRN"),
     tf.trainable_variables()
 )
 
@@ -61,9 +79,9 @@ else:
         for i, event in enumerate(log_file_0):
             next_event = log_file_0[i + 1]
             # Observe play
-            s = event.feature_vector
+            s = event.get_feature_vector(features)
             a = event.action
-            s1 = next_event.feature_vector
+            s1 = next_event.get_feature_vector(features)
             r = next_event.reward
 
             end = next_event.end
@@ -93,7 +111,7 @@ print("Done training!")
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
 
-ai_server = AIServer(fv_size, prediction_to_action, trainer, ddqrn)
+ai_server = AIServer(features, prediction_to_action, trainer, ddqrn)
 
 server = SharpShooterServer()
 server.start()
