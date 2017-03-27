@@ -2,11 +2,13 @@ import tensorflow as tf
 
 from ai_server import AIServer
 from ddqrn_trainer import DDQRNTrainer
+from evolution_trainer import EvolutionHost
 from log_parser import parse_logs_in_folder
 from sharpshooter_server import SharpShooterServer
 from simple_ddqrn import DDQRN
 from target_ddqrn import target_ddqrn
 import parameter_config as cfg
+from tournament_selection_server import TournamentSelectionServer
 
 sess = tf.Session()
 
@@ -20,7 +22,7 @@ sess.run(tf.global_variables_initializer())
 
 ddqrn_target.update(sess)  # Set the target network to be equal to the primary network
 
-load_model = False
+load_model = True
 save_path = "./dqn"
 
 trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, cfg.batch_size, cfg.trace_length)
@@ -71,7 +73,29 @@ print("Done training!")
 
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
-ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn)
+#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn)
+
+def result_reward(winner):
+    reward = 0
+    if winner.startswith("player0"):
+        reward = 1
+    return reward
+
+def meta_reward(last_action, last_enemy_health, fv):
+    enemy_health = fv[10]
+    reward = 0
+    if last_action == 7 and enemy_health < last_enemy_health:
+        reward = 0.00001
+    return reward
+
+rew_funcs = {
+    "result_reward": result_reward,
+    "meta_rewards": meta_reward
+}
+
+host = EvolutionHost("./dqn", "host", trainer.saver)
+population = [host.individual.generate_offspring(i) for i in range(2)]
+ai_server = TournamentSelectionServer(ddqrn, population, 1, 2, trainer.saver, trainer.train_writer, rew_funcs)
 
 server = SharpShooterServer()
 server.start()

@@ -6,11 +6,12 @@ import tensorflow as tf
 
 class AIServer:
 
-    def __init__(self, features, prediction_to_action, trainer, ddqrn):
+    def __init__(self, features, prediction_to_action, trainer, ddqrn, reward_function):
         self.features = features
         self.prediction_to_action = prediction_to_action
         self.trainer = trainer
         self.ddqrn = ddqrn
+        self.reward_function = reward_function
 
         self.training = True
         self.fv0 = None
@@ -58,10 +59,7 @@ class AIServer:
                 self.game_has_ended = True
                 print("Game ended with result: " + str(msg))
 
-                winner = msg["result"]
-                r = 0
-                if winner.startswith("player0"):
-                    r = 1
+                r = self.reward_function["end_reward"](msg["result"])
 
                 if self.training:
                     train_count = self.ddqrn.sess.run([self.ddqrn.inc_train_count])[0]
@@ -83,9 +81,7 @@ class AIServer:
 
             enemy_health = fv1[10]
 
-            r = 0
-            if self.a == 7 and enemy_health < self.last_enemy_health:
-                r = 0.00001
+            r = self.reward_function["meta_rewards"](self.a, self.last_enemy_health, fv1)
 
             if self.fv0 is not None and self.training:
                 self.trainer.experience(self.fv0, self.a, r, fv1, False)

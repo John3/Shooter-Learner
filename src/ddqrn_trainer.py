@@ -46,7 +46,6 @@ class DDQRNTrainer:
         self.j = 0 # The number of steps we have taken
         self.r_all = 0
 
-
     def end_episode(self):
         self.buffer.add(self.episode_buffer.buffer)
         self.j_list.append(self.j)

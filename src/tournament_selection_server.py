@@ -11,52 +11,73 @@ import parameter_config as cfg
 
 class TournamentSelectionServer:
 
-    def __init__(self, population: List[Individual], evaluation_rounds, saver: tf.train.Saver):
+    def __init__(self, ddqrn, population: List[Individual], number_of_offspring, evaluation_rounds,
+                 saver: tf.train.Saver, writer, reward_functions):
+        self.ddqrn = ddqrn
         self.saver = saver
+        self.writer = writer
         self.evaluation_rounds = evaluation_rounds
+        self.reward_functions = reward_functions
         self.population = population
         self.evaluated_population = []
-        self.population_size = len(population)
+        self.base_population_size = len(population)
+        self.number_of_offspring = number_of_offspring
         self.population.extend(self.generate_new_population())
         self.current_individual = self.population.pop()
         self.current_round = 0
         self.current_reward = 0
         self.rnn_state = None
+        self.game_has_ended = False
+
+        self.last_enemy_health = 20
+        self.a = None
+
+        tensor_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="main_DDQRN")
+        self.variable_value = tf.placeholder(tf.float32)
+        self.variable_update_ops = []
+        for var in tensor_variables:
+            self.variable_update_ops.append(var.assign(self.variable_value))
+
+        self.fitness_tensor = tf.placeholder(tf.float32)
+        self.fitness_summary = tf.summary.scalar("evolution/fitness", self.fitness_tensor)
 
     def generate_new_population(self) -> List[Individual]:
         new_population = []
         for ind in self.population:
-            for x in range(self.population_size):
+            for x in range(self.number_of_offspring):
                 new_population.append(ind.generate_offspring(x))
         return new_population
 
     def update_graph(self, individual):
-        tensor_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="main_DDQRN")
-        for tenVar, var in zip(tensor_variables, individual.variables):
-            tenVar.assign(var)
+        for tenVar, var in zip(self.variable_update_ops, individual.variables):
+            self.ddqrn.sess.run([tenVar], feed_dict={self.variable_value: var})
 
     def callback(self, msg):
+        self.game_has_ended = False
         if msg["type"] == "instruction":
             return {"type": "instruction", "command": "resetMission"}
 
         if msg["type"] == "event":
             if msg["message"] == "game_start":
                 # Reset state
-                self.rnn_state = (np.zeros([cfg.batch_size, cfg.fv_size]), np.zeros([cfg.batch_size, cfg.fv_size]))
+                self.rnn_state = (np.zeros([1, len(cfg.features)]), np.zeros([1, len(cfg.features)]))
                 print("Game has started!")
                 return {"response": "success"}
             if msg["message"] == "game_end":
+                self.game_has_ended = True
                 self.current_round += 1
                 print("Game ended with result: " + str(msg))
-                winner = msg["result"]
-                if winner.startswith("player0"):
-                    self.current_reward += 1
-                if self.current_round > self.evaluation_rounds:
+
+                self.current_reward += self.reward_functions["result_reward"](msg["result"])
+                if self.current_round == self.evaluation_rounds:
                     self.current_individual.fitness = self.current_reward/self.evaluation_rounds
+                    print("Finished evaluating an individual, fitness was %s" % self.current_individual.fitness)
                     self.evaluated_population.append(self.current_individual)
                     self.current_round = 0
                     self.current_reward = 0
+                    print("There are %s individuals left" % len(self.population))
                     if len(self.population) == 0:
+                        print("Selecting an individual")
                         self.selection()
                     self.current_individual = self.population.pop()
                     self.update_graph(self.current_individual)
@@ -64,17 +85,22 @@ class TournamentSelectionServer:
 
         if msg["type"] == "think":
             fv1 = self.json_string_to_feature_vector(msg["feature_vector"])
-            predict = tf.get_collection("predict", scope="main_DDQRN")[0]
 
-            sess = tf.get_default_session()
-            a, self.rnn_state = sess.run([predict, self.rnn_state], feed_dict={
-                "input_frames:0": [fv1],
-                "train_length:0": cfg.train_length,
-                "batch_size:0": cfg.batch_size,
-                "state_in:0": self.rnn_state
+            enemy_health = fv1[10]
+
+            r = self.reward_functions["meta_rewards"](self.a, self.last_enemy_health, fv1)
+            self.current_reward += r
+
+            a, self.rnn_state = self.ddqrn.sess.run([self.ddqrn.predict, self.ddqrn.rnn_state], feed_dict={
+                self.ddqrn.input_frames: [fv1],
+                self.ddqrn.train_length: 1,
+                self.ddqrn.batch_size: 1,
+                self.ddqrn.state_in: self.rnn_state
             })
             a = a[0].item()
 
+            self.a = a
+            self.last_enemy_health = enemy_health
             return a
 
         print("Unhandled message: " + str(msg))
@@ -104,29 +130,27 @@ class TournamentSelectionServer:
 
     def selection(self) -> List[Individual]:
         self.population = []
-        sample = self.random_sample(self.population_size)
+        sample = self.random_sample(self.number_of_offspring + 1)
         while sample:
             sample.sort(key=lambda x: x.fitness, reverse=True)
             self.population.append(sample[0])
+            sample = self.random_sample(self.number_of_offspring + 1)
         self.population.sort(key=lambda x: x.fitness, reverse=True)
         self.update_graph(self.population[0])
-        sess = tf.get_default_session()
         path = "./dqn"
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.saver.save(sess, path + '/model-evolution')
+        generation, summary = self.ddqrn.sess.run([self.ddqrn.inc_generation, self.fitness_summary], feed_dict={self.fitness_tensor: self.population[0].fitness})
+        self.writer.add_summary(summary, generation)
+
+        self.saver.save(self.ddqrn.sess, path + '/model-evolution')
         self.population.extend(self.generate_new_population())
 
     def random_sample(self, count) -> List[Individual]:
         res = []
         for k in range(count):
-            i = random.randint(0, len(self.evaluated_population))
             if len(self.evaluated_population) > 0:
+                i = random.randint(0, len(self.evaluated_population)-1)
                 res.append(self.evaluated_population.pop(i))
         return res
-
-if __name__ == "__main__":
-    host = EvolutionHost("./dqn/model", "host")
-    population = [host.individual.generate_offspring(i) for i in range(10)]
-    TournamentSelectionServer(population, 50, host.saver)

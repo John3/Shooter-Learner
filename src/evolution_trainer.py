@@ -3,11 +3,10 @@ import numpy as np
 
 
 class Individual:
-    def __init__(self, sess, variables, mutations, name):
+    def __init__(self, variables, mutations, name):
         self.variables = variables
         self.mutations = mutations
         self.name = name
-        self.sess = sess
 
     def generate_offspring(self, name):
         n = 0
@@ -33,15 +32,19 @@ class Individual:
             new_variables.append(newVar)
             new_mutations.append(newMut)
 
-        return Individual(self.sess, new_variables, new_mutations, self.name + "_" + name)
+        return Individual(new_variables, new_mutations, str(self.name) + "_" + str(name))
 
 
 class EvolutionHost:
 
-    def __init__(self, path, name):
+    def __init__(self, path, name, saver):
         self.sess = tf.Session()
-        self.saver = tf.train.import_meta_graph(path + ".meta")
-        self.saver.restore(self.sess, path)
+        #self.saver = tf.train.import_meta_graph(path + ".meta")
+        self.saver = saver
+        ckpt = tf.train.get_checkpoint_state(path)
+        self.saver.restore(self.sess, ckpt.model_checkpoint_path)
+
+        #self.saver.restore(self.sess, path)
         self.variable_tensors = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="main_DDQRN")
         self.variables = []
         self.mutations = []
@@ -52,7 +55,7 @@ class EvolutionHost:
             self.variables.append(np_var)
             self.mutations.append(np.random.normal(size=np_var.shape))
 
-        self.individual = Individual(self.sess, self.variables, self.mutations, self.name)
+        self.individual = Individual(self.variables, self.mutations, self.name)
 
 
 if __name__ == "__main__":

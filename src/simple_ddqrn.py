@@ -51,6 +51,8 @@ class DDQRN:
                 self.inc_evaluation_count = tf.assign_add(self.evaluation_count, 1, name="inc_evaluation_count")
                 self.train_count = tf.Variable(0, dtype=tf.int32, trainable=False, name="train_count")
                 self.inc_train_count = tf.assign_add(self.train_count, 1, name="inc_train_count")
+                self.generation = tf.Variable(0, dtype=tf.int32, trainable=False, name="generation")
+                self.inc_generation = tf.assign_add(self.generation, 1, name="inc_generation")
 
     def build_input_layer(self, layer_input):
         return layer_input
