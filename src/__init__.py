@@ -6,52 +6,13 @@ from log_parser import parse_logs_in_folder
 from sharpshooter_server import SharpShooterServer
 from simple_ddqrn import DDQRN
 from target_ddqrn import target_ddqrn
-
-train_length = 8  # todo do we need this?
-fv_size = 15  # Size of the FeatureVector (state)
-
-action_to_string = {
-    0: "none",
-    1: "moveForward",
-    2: "moveLeft",
-    3: "moveRight",
-    4: "moveBackward",
-    5: "turnLeft",
-    6: "turnRight",
-    7: "shoot",
-    8: "prepare"
-}
-
-features = [
-    "DeltaRot",
-    "DeltaMovedX",
-    "DeltaMovedY",
-    "VelX",
-    "VelY",
-    "DamageProb",
-    "DeltaDamageProb",
-    "DistanceToObstacleLeft",
-    "DistanceToObstacleRight",
-    "Health",
-    "EnemyHealth",
-    "TickCount",
-    "TicksSinceObservedEnemy",
-    "TicksSinceDamage",
-    "ShootDelay",
-]
-
-prediction_to_action = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-batch_size = 4  # Number of traces to use for each training step
-trace_length = 8  # How long each experience trace will be
-discount_factor = .99
-
-train_freq = 4  # How often do we train
+import parameter_config as cfg
 
 sess = tf.Session()
 
-ddqrn = DDQRN(sess, len(features), len(prediction_to_action), "main_DDQRN")
+ddqrn = DDQRN(sess, len(cfg.features), len(cfg.prediction_to_action), "main_DDQRN")
 ddqrn_target = target_ddqrn(
-    DDQRN(sess, len(features), len(prediction_to_action), "target_DDQRN"),
+    DDQRN(sess, len(cfg.features), len(cfg.prediction_to_action), "target_DDQRN"),
     tf.trainable_variables()
 )
 
@@ -59,10 +20,10 @@ sess.run(tf.global_variables_initializer())
 
 ddqrn_target.update(sess)  # Set the target network to be equal to the primary network
 
-load_model = True
+load_model = False
 save_path = "./dqn"
 
-trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, batch_size, trace_length)
+trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, cfg.batch_size, cfg.trace_length)
 
 player_number = 0
 
@@ -79,9 +40,9 @@ else:
         for i, event in enumerate(log_file_0):
             next_event = log_file_0[i + 1]
             # Observe play
-            s = event.get_feature_vector(features)
+            s = event.get_feature_vector(cfg.features)
             a = event.action
-            s1 = next_event.get_feature_vector(features)
+            s1 = next_event.get_feature_vector(cfg.features)
             r = next_event.reward
 
             end = next_event.end
@@ -110,8 +71,7 @@ print("Done training!")
 
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
-
-ai_server = AIServer(features, prediction_to_action, trainer, ddqrn)
+ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn)
 
 server = SharpShooterServer()
 server.start()
