@@ -8,6 +8,19 @@ from simple_ddqrn import DDQRN
 from target_ddqrn import target_ddqrn
 import parameter_config as cfg
 
+action_to_string = {
+    0: "none",
+    1: "moveForward",
+    2: "moveLeft",
+    3: "moveRight",
+    4: "moveBackward",
+    5: "turnLeft",
+    6: "turnRight",
+    7: "shoot",
+    8: "prepare"
+}
+
+prediction_to_action = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 sess = tf.Session()
 
 ddqrn = DDQRN(sess, cfg.fv_size, cfg.fv_size, cfg.actions_size, "main_DDQRN")

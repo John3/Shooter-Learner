@@ -6,9 +6,9 @@ import tensorflow as tf
 
 class AIServer:
 
-    def __init__(self, fv_size, actions_size, trainer, ddqrn):
+    def __init__(self, fv_size, prediction_to_action, trainer, ddqrn):
         self.fv_size = fv_size
-        self.actions_size = actions_size
+        self.prediction_to_action = prediction_to_action
         self.trainer = trainer
         self.ddqrn = ddqrn
 
@@ -97,7 +97,7 @@ class AIServer:
                     state_in=self.ddqrn.state,
                     batch_size=1
                 )
-                a = np.random.randint(0, self.actions_size)
+                a = np.random.randint(0, len(self.prediction_to_action))
             else:
                 a, self.ddqrn.state = self.ddqrn.get_prediction_with_state(
                     input=[fv1],
@@ -116,7 +116,7 @@ class AIServer:
             self.fv0 = fv1
             self.a = a
             self.last_enemy_health = enemy_health
-            return a
+            return self.prediction_to_action[a]
 
         print("Unhandled message: " + str(msg))
         return 3

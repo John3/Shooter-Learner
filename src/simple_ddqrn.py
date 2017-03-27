@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 
+from external.act_cell import ACTCell
+
 
 class DDQRN:
 
@@ -10,6 +12,8 @@ class DDQRN:
         self.input_size = input_size
         self.scope = scope
 
+        self.act = True
+
         with tf.name_scope(scope):
             self.train_length = tf.placeholder(dtype=tf.int32, name="train_length")
             self.batch_size = tf.placeholder(dtype=tf.int32, name="batch_size")
@@ -18,7 +22,11 @@ class DDQRN:
             self.actions = tf.placeholder(name="actions", shape=[None], dtype=tf.int32)
             self.input_frames = tf.placeholder(name="input_frames", shape=[None, fv_size], dtype=tf.float32)
 
-            self.cell = tf.contrib.rnn.LSTMCell(num_units=input_size, state_is_tuple=True)
+            self.cell = tf.contrib.rnn.LSTMCell(num_units=input_size)
+            if self.act:
+                self.inner_cell = self.cell
+                self.cell = ACTCell(num_units=input_size, cell=self.inner_cell, epsilon=0.01,
+                                    max_computation=50, batch_size=self.batch_size)
             self.state = (np.zeros([1, fv_size]), np.zeros([1, fv_size]))
 
             input_layer_output = self.build_input_layer(self.input_frames)
@@ -55,7 +63,10 @@ class DDQRN:
                 inputFlat = tf.reshape(tf.contrib.layers.flatten(layer_input), [self.batch_size, self.train_length, input_shape_size])
 
             with tf.name_scope('build_lstm') as scope:
-                self.state_in = self.cell.zero_state(self.batch_size, tf.float32)
+                if self.act:
+                    self.state_in = self.inner_cell.zero_state(self.batch_size, tf.float32)
+                else:
+                    self.state_in = self.cell.zero_state(self.batch_size, tf.float32)
                 rnn, self.rnn_state = tf.nn.dynamic_rnn(
                     inputs=inputFlat,
                     cell=self.cell,
