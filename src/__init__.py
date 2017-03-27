@@ -6,29 +6,21 @@ from log_parser import parse_logs_in_folder
 from sharpshooter_server import SharpShooterServer
 from simple_ddqrn import DDQRN
 from target_ddqrn import target_ddqrn
-
-train_length = 8  # todo do we need this?
-fv_size = 15  # Size of the FeatureVector (state)
-actions_size = 8  # Number of actions we can take
-batch_size = 4  # Number of traces to use for each training step
-trace_length = 8  # How long each experience trace will be
-discount_factor = .99
-
-train_freq = 4  # How often do we train
+import parameter_config as cfg
 
 sess = tf.Session()
 
-ddqrn = DDQRN(sess, fv_size, fv_size, actions_size, "main_DDQRN")
-ddqrn_target = target_ddqrn(DDQRN(sess, fv_size, fv_size, actions_size, "target_DDQRN"), tf.trainable_variables())
+ddqrn = DDQRN(sess, cfg.fv_size, cfg.fv_size, cfg.actions_size, "main_DDQRN")
+ddqrn_target = target_ddqrn(DDQRN(sess, cfg.fv_size, cfg.fv_size, cfg.actions_size, "target_DDQRN"), tf.trainable_variables())
 
 sess.run(tf.global_variables_initializer())
 
 ddqrn_target.update(sess)  # Set the target network to be equal to the primary network
 
-load_model = True
+load_model = False
 save_path = "./dqn"
 
-trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, batch_size, trace_length)
+trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, cfg.batch_size, cfg.trace_length)
 
 player_number = 0
 
@@ -77,7 +69,7 @@ print("Done training!")
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
 
-ai_server = AIServer(fv_size, actions_size, trainer, ddqrn)
+ai_server = AIServer(cfg.fv_size, cfg.actions_size, trainer, ddqrn)
 
 server = SharpShooterServer()
 server.start()

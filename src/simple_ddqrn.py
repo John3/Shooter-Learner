@@ -25,6 +25,7 @@ class DDQRN:
             lstm_layer_output = self.build_lstm_layer(input_layer_output)
             forward_layer_output = self.build_forward_layer(lstm_layer_output)
             self.predict, Q, self.Q_out = self.build_output_layer(forward_layer_output)
+            tf.add_to_collection("predict", self.predict)
 
             with tf.name_scope("loss"):
                 td_error = tf.square(self.target_Q - Q)
