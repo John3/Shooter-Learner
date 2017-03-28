@@ -6,6 +6,12 @@ import tensorflow as tf
 
 class AIServer:
 
+    start_e = 1  # Starting probability of choosing a random action
+    end_e = 0.1  # Ending probability of choosing a random action
+    steps_e = 10000  # How many steps untill the probability of choosing a random action becomes end_e
+
+    step_drop = (start_e - end_e) / steps_e
+
     def __init__(self, features, prediction_to_action, trainer, ddqrn, reward_function):
         self.features = features
         self.prediction_to_action = prediction_to_action
@@ -16,6 +22,9 @@ class AIServer:
         self.training = True
         self.fv0 = None
         self.a = None
+
+        self.e = self.start_e
+
         self.eval_games = 0
         self.num_games = 0
         self.rewards = 0
@@ -86,7 +95,7 @@ class AIServer:
             if self.fv0 is not None and self.training:
                 self.trainer.experience(self.fv0, self.a, r, fv1, False)
 
-            if np.random.rand(1) < self.trainer.e or self.trainer.total_steps < self.trainer.pre_train_steps:
+            if np.random.rand(1) < self.e or self.trainer.total_steps < self.trainer.pre_train_steps:
                 self.ddqrn.state = self.ddqrn.get_state(
                     input=[fv1],
                     train_length=1,
@@ -102,6 +111,9 @@ class AIServer:
                     batch_size=1
                 )
                 a = a[0].item()
+
+            if self.e > self.end_e:
+                self.e -= self.step_drop
 
             if not self.training:
                 i = self.ddqrn.sess.run([self.ddqrn.evaluation_count])[0]
