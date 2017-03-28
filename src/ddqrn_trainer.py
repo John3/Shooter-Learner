@@ -9,12 +9,6 @@ class DDQRNTrainer:
 
     pre_train_steps = 10000
 
-    start_e = 1  # Starting probability of choosing a random action
-    end_e = 0.1  # Ending probability of choosing a random action
-    steps_e = 10000  # How many steps untill the probability of choosing a random action becomes end_e
-
-    step_drop = (start_e - end_e) / steps_e
-
     train_freq = 4
     discount_factor = 0.99
 
@@ -32,9 +26,6 @@ class DDQRNTrainer:
         self.r_list = []
 
         self.total_steps = 0
-        self.e = 0
-        # Set the rate of random action decrease.
-        self.e = self.start_e
 
         self.saver = tf.train.Saver()
 
@@ -116,6 +107,8 @@ class DDQRNTrainer:
         print('Loading Model...')
         ckpt = tf.train.get_checkpoint_state(path)
         self.saver.restore(self.sess, ckpt.model_checkpoint_path)
+        self.buffer.load(path)
+        self.total_steps = self.pre_train_steps
 
     def save(self, path):
         # Make a path for our model to be saved in.
@@ -123,6 +116,7 @@ class DDQRNTrainer:
             os.makedirs(path)
 
         self.saver.save(self.sess, path + '/model')
+        self.buffer.save(path)
 
 
     def tensorboard_setup(self):
