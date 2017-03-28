@@ -1,7 +1,7 @@
 import json
 import os
 
-from evolution_trainer import EvolutionHost, Individual
+from evolution_trainer import  Individual
 from typing import List
 import random
 import tensorflow as tf
@@ -11,17 +11,17 @@ import parameter_config as cfg
 
 class TournamentSelectionServer:
 
-    def __init__(self, ddqrn, population: List[Individual], number_of_offspring, evaluation_rounds,
+    def __init__(self, ddqrn, population: List[Individual],
                  saver: tf.train.Saver, writer, reward_functions):
         self.ddqrn = ddqrn
         self.saver = saver
         self.writer = writer
-        self.evaluation_rounds = evaluation_rounds
+        self.evaluation_rounds = cfg.eval_rounds(0)
         self.reward_functions = reward_functions
         self.population = population
         self.evaluated_population = []
-        self.base_population_size = len(population)
-        self.number_of_offspring = number_of_offspring
+        self.base_population_size = cfg.population_size(0)
+        self.number_of_offspring = cfg.number_of_offspring
         self.population.extend(self.generate_new_population())
         self.current_individual = self.population.pop()
         self.current_round = 0
@@ -40,6 +40,17 @@ class TournamentSelectionServer:
 
         self.fitness_tensor = tf.placeholder(tf.float32)
         self.fitness_summary = tf.summary.scalar("evolution/fitness", self.fitness_tensor)
+
+    def save_population(self):
+        if not os.path.exists("data/"):
+            os.makedirs("data/")
+
+        np.savez_compressed("data/evolution", population=self.population)
+
+    def load_population(self):
+        with np.load("data/evolution.npz") as data:
+            self.population = list(data['population'])
+        self.current_individual = self.population.pop()
 
     def generate_new_population(self) -> List[Individual]:
         new_population = []
@@ -136,16 +147,21 @@ class TournamentSelectionServer:
             self.population.append(sample[0])
             sample = self.random_sample(self.number_of_offspring + 1)
         self.population.sort(key=lambda x: x.fitness, reverse=True)
-        self.update_graph(self.population[0])
+        best_individual = self.population[0]
+        self.update_graph(best_individual)
         path = "./dqn"
         if not os.path.exists(path):
             os.makedirs(path)
 
-        generation, summary = self.ddqrn.sess.run([self.ddqrn.inc_generation, self.fitness_summary], feed_dict={self.fitness_tensor: self.population[0].fitness})
+        generation, summary = self.ddqrn.sess.run([self.ddqrn.inc_generation, self.fitness_summary],
+                                                  feed_dict={self.fitness_tensor: best_individual.fitness})
+        self.evaluation_rounds = cfg.eval_rounds(best_individual.fitness)
+        self.base_population_size = cfg.population_size(best_individual.fitness)
         self.writer.add_summary(summary, generation)
 
-        self.saver.save(self.ddqrn.sess, path + '/model-evolution')
         self.population.extend(self.generate_new_population())
+        self.saver.save(self.ddqrn.sess, path + '/model-evolution')
+        self.save_population()
 
     def random_sample(self, count) -> List[Individual]:
         res = []

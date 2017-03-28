@@ -1,3 +1,5 @@
+import math
+
 train_length = 8  # todo do we need this?
 batch_size = 4  # Number of traces to use for each training step
 trace_length = 8  # How long each experience trace will be
@@ -37,3 +39,21 @@ features = [
 ]
 
 prediction_to_action = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+# ----------------Evolution---------------------
+
+number_of_offspring = 5
+# interpolation calculated by solving   10 * e^(fit + x) * y = 10 and 2
+#                                       100 * e^(-fit + x) * y = 100 and 500
+
+
+def population_size(fitness):
+    x = 1 / 4 * (1 - 5 * math.exp(1))
+    y = -(4 / (5 * (math.exp(1) - 1)))
+    return math.floor(10 * (math.exp(fitness) + x) * y)  # interpolated form 10 to 2 note: 9 most of the time
+
+
+def eval_rounds(fitness):
+    x = (1 - 5 * math.exp(1)) / (4 * math.exp(1))
+    y = -(4 * math.exp(1)) / (math.exp(1) - 1)
+    return math.floor(100*(math.exp(-fitness) + x) * y)  # interpolated from 100 to 500

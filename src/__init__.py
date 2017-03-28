@@ -29,8 +29,37 @@ trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, cfg.batch_size, cfg.trace_leng
 
 player_number = 0
 
+
+def result_reward(winner):
+    reward = 0
+    if winner.startswith("player0"):
+        reward = 1
+    return reward
+
+
+def meta_reward(last_action, last_enemy_health, fv):
+    enemy_health = fv[10]
+    reward = 0
+    if last_action == 7 and enemy_health < last_enemy_health:
+        reward = 0.00001
+    return reward
+
+rew_funcs = {
+    "result_reward": result_reward,
+    "meta_rewards": meta_reward
+}
+
+host = EvolutionHost("./dqn", "host", trainer.saver)
+population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
+ai_server = TournamentSelectionServer(ddqrn, population, trainer.saver, trainer.train_writer, rew_funcs)
+
+# ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn)
+
+
 if load_model:
     trainer.load(save_path)
+    if type(ai_server) is TournamentSelectionServer:
+        ai_server.load_population()
 else:
     print("Loading logs...")
     logs = parse_logs_in_folder("data/game_logs")
@@ -73,29 +102,6 @@ print("Done training!")
 
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
-#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn)
-
-def result_reward(winner):
-    reward = 0
-    if winner.startswith("player0"):
-        reward = 1
-    return reward
-
-def meta_reward(last_action, last_enemy_health, fv):
-    enemy_health = fv[10]
-    reward = 0
-    if last_action == 7 and enemy_health < last_enemy_health:
-        reward = 0.00001
-    return reward
-
-rew_funcs = {
-    "result_reward": result_reward,
-    "meta_rewards": meta_reward
-}
-
-host = EvolutionHost("./dqn", "host", trainer.saver)
-population = [host.individual.generate_offspring(i) for i in range(2)]
-ai_server = TournamentSelectionServer(ddqrn, population, 1, 2, trainer.saver, trainer.train_writer, rew_funcs)
 
 server = SharpShooterServer()
 server.start()
@@ -103,6 +109,6 @@ i = 1
 while True:
     server.receive_message(ai_server)
     if ai_server.game_has_ended:
-        if i % 50000 == 0:
+        if i % 50000 == 0 and type(ai_server) is AIServer:
             ai_server.start_evaluation(1000)
         i += 1
