@@ -1,6 +1,5 @@
-train_length = 8  # todo do we need this?
 batch_size = 4  # Number of traces to use for each training step
-trace_length = 8  # How long each experience trace will be
+trace_length = 76  # How long each experience trace will be
 discount_factor = .99
 
 train_freq = 4

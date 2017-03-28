@@ -73,13 +73,15 @@ print("Done training!")
 
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
-#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn)
 
 def result_reward(winner):
     reward = 0
     if winner.startswith("player0"):
         reward = 1
+    elif winner.startswith("player1"):
+        reward = -1
     return reward
+
 
 def meta_reward(last_action, last_enemy_health, fv):
     enemy_health = fv[10]
@@ -93,9 +95,10 @@ rew_funcs = {
     "meta_rewards": meta_reward
 }
 
-host = EvolutionHost("./dqn", "host", trainer.saver)
-population = [host.individual.generate_offspring(i) for i in range(2)]
-ai_server = TournamentSelectionServer(ddqrn, population, 1, 2, trainer.saver, trainer.train_writer, rew_funcs)
+#host = EvolutionHost("./dqn", "host", trainer.saver)
+#population = [host.individual.generate_offspring(i) for i in range(2)]
+#ai_server = TournamentSelectionServer(ddqrn, population, 1, 2, trainer.saver, trainer.train_writer, rew_funcs)
+ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, rew_funcs)
 
 server = SharpShooterServer()
 server.start()

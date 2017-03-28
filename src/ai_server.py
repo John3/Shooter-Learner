@@ -59,7 +59,7 @@ class AIServer:
                 self.game_has_ended = True
                 print("Game ended with result: " + str(msg))
 
-                r = self.reward_function["end_reward"](msg["result"])
+                r = self.reward_function["result_reward"](msg["result"])
 
                 if self.training:
                     train_count = self.ddqrn.sess.run([self.ddqrn.inc_train_count])[0]
