@@ -1,11 +1,38 @@
 import math
 
+# ------------ Training parameters --------------
+
 batch_size = 4  # Number of traces to use for each training step
 trace_length = 76  # How long each experience trace will be
 discount_factor = .99
 
 train_freq = 4
 # How often do we train
+
+load_model = False
+
+save_path = "./dqn"
+player_number = 0
+
+
+def result_reward(winner):
+    reward = 0
+    if winner.startswith("player0"):
+        reward = 1
+    return reward
+
+
+def meta_reward(last_action, last_enemy_health, fv):
+    enemy_health = fv[10]
+    reward = 0
+    if last_action == 7 and enemy_health < last_enemy_health:
+        reward = 0.00001
+    return reward
+
+rew_funcs = {
+    "result_reward": result_reward,
+    "meta_rewards": meta_reward
+}
 
 action_to_string = {
     0: "none",
@@ -38,6 +65,25 @@ features = [
 ]
 
 prediction_to_action = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+# ------------------Training--------------------
+start_e = 1  # Starting probability of choosing a random action
+end_e = 0.1  # Ending probability of choosing a random action
+steps_e = 10000  # How many steps untill the probability of choosing a random action becomes end_e
+
+step_drop = (start_e - end_e) / steps_e
+
+buffer_size = 50000
+
+# -----------------DDQRN Trainer----------------
+pre_train_steps = 10000
+
+fv_size = 15  # Size of the FeatureVector (state)
+
+
+# ----------------------DDQRN-------------------
+use_act = False
+tau = 0.001 # Rate to update target network toward primary network
 
 # ----------------Evolution---------------------
 

@@ -12,12 +12,12 @@ import parameter_config as cfg
 class TournamentSelectionServer:
 
     def __init__(self, ddqrn, population: List[Individual],
-                 saver: tf.train.Saver, writer, reward_functions):
+                 model, writer):
         self.ddqrn = ddqrn
-        self.saver = saver
+        self.model = model
         self.writer = writer
         self.evaluation_rounds = cfg.eval_rounds(0)
-        self.reward_functions = reward_functions
+        self.reward_functions = cfg.rew_funcs
         self.population = population
         self.evaluated_population = []
         self.base_population_size = cfg.population_size(0)
@@ -40,17 +40,6 @@ class TournamentSelectionServer:
 
         self.fitness_tensor = tf.placeholder(tf.float32)
         self.fitness_summary = tf.summary.scalar("evolution/fitness", self.fitness_tensor)
-
-    def save_population(self):
-        if not os.path.exists("data/"):
-            os.makedirs("data/")
-
-        np.savez_compressed("data/evolution", population=self.population)
-
-    def load_population(self):
-        with np.load("data/evolution.npz") as data:
-            self.population = list(data['population'])
-        self.current_individual = self.population.pop()
 
     def generate_new_population(self) -> List[Individual]:
         new_population = []
@@ -160,8 +149,7 @@ class TournamentSelectionServer:
         self.writer.add_summary(summary, generation)
 
         self.population.extend(self.generate_new_population())
-        self.saver.save(self.ddqrn.sess, path + '/model-evolution')
-        self.save_population()
+        self.model.save(path + '/model-evolution')
 
     def random_sample(self, count) -> List[Individual]:
         res = []

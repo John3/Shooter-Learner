@@ -2,15 +2,9 @@ import json
 
 import numpy as np
 import tensorflow as tf
-
+import parameter_config as cfg
 
 class AIServer:
-
-    start_e = 1  # Starting probability of choosing a random action
-    end_e = 0.1  # Ending probability of choosing a random action
-    steps_e = 10000  # How many steps untill the probability of choosing a random action becomes end_e
-
-    step_drop = (start_e - end_e) / steps_e
 
     def __init__(self, features, prediction_to_action, trainer, ddqrn, reward_function):
         self.features = features
@@ -23,7 +17,7 @@ class AIServer:
         self.fv0 = None
         self.a = None
 
-        self.e = self.start_e
+        self.e = cfg.start_e
 
         self.eval_games = 0
         self.num_games = 0
@@ -75,7 +69,7 @@ class AIServer:
                     self.trainer.experience(self.fv0, self.a, r, self.fv0, True)
                     self.trainer.end_episode()
                     if train_count % 10 == 0:
-                        self.trainer.save("./dqn")
+                        self.trainer.save(cfg.save_path)
                 else:
                     self.ddqrn.sess.run([self.ddqrn.inc_evaluation_count])
                     self.num_games += 1
@@ -112,8 +106,8 @@ class AIServer:
                 )
                 a = a[0].item()
 
-            if self.e > self.end_e:
-                self.e -= self.step_drop
+            if self.e > cfg.end_e:
+                self.e -= cfg.step_drop
 
             if not self.training:
                 i = self.ddqrn.sess.run([self.ddqrn.evaluation_count])[0]

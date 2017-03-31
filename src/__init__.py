@@ -4,6 +4,7 @@ from ai_server import AIServer
 from ddqrn_trainer import DDQRNTrainer
 from evolution_trainer import EvolutionHost
 from log_parser import parse_logs_in_folder
+from model_saver import ModelSaver
 from sharpshooter_server import SharpShooterServer
 from simple_ddqrn import DDQRN
 from target_ddqrn import target_ddqrn
@@ -12,54 +13,29 @@ from tournament_selection_server import TournamentSelectionServer
 
 sess = tf.Session()
 
-ddqrn = DDQRN(sess, len(cfg.features), len(cfg.prediction_to_action), "main_DDQRN")
-ddqrn_target = target_ddqrn(
-    DDQRN(sess, len(cfg.features), len(cfg.prediction_to_action), "target_DDQRN"),
-    tf.trainable_variables()
-)
+ddqrn = DDQRN(sess, "main_DDQRN")
+ddqrn_target = target_ddqrn(DDQRN(sess, "target_DDQRN"), tf.trainable_variables())
 
 sess.run(tf.global_variables_initializer())
 
 ddqrn_target.update(sess)  # Set the target network to be equal to the primary network
 
-load_model = True
-save_path = "./dqn"
 
-trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess, cfg.batch_size, cfg.trace_length)
+trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess)
 
-player_number = 0
+model = ModelSaver(ddqrn, trainer)
 
-
-def result_reward(winner):
-    reward = 0
-    if winner.startswith("player0"):
-        reward = 1
-    return reward
-
-
-def meta_reward(last_action, last_enemy_health, fv):
-    enemy_health = fv[10]
-    reward = 0
-    if last_action == 7 and enemy_health < last_enemy_health:
-        reward = 0.00001
-    return reward
-
-rew_funcs = {
-    "result_reward": result_reward,
-    "meta_rewards": meta_reward
-}
-
-host = EvolutionHost("./dqn", "host", trainer.saver)
+host = EvolutionHost("host", model)
 population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-ai_server = TournamentSelectionServer(ddqrn, population, trainer.saver, trainer.train_writer, rew_funcs)
+ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
 
-# ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn)
+model.ai_server = ai_server
+
+#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs)
 
 
-if load_model:
-    trainer.load(save_path)
-    if type(ai_server) is TournamentSelectionServer:
-        ai_server.load_population()
+if cfg.load_model:
+    model.load(cfg.save_path)
 else:
     print("Loading logs...")
     logs = parse_logs_in_folder("data/game_logs")
@@ -71,9 +47,9 @@ else:
         for i, event in enumerate(log_file_0):
             next_event = log_file_0[i + 1]
             # Observe play
-            s = event.get_feature_vector(cfg.features)
+            s = event.get_feature_vector()
             a = event.action
-            s1 = next_event.get_feature_vector(cfg.features)
+            s1 = next_event.get_feature_vector()
             r = next_event.reward
 
             end = next_event.end
@@ -87,16 +63,16 @@ else:
 
         train_count = ddqrn.sess.run([ddqrn.inc_train_count])[0]
         if train_count % 10 == 0:
-            trainer.save("./dqn")
+            model.save(cfg.save_path)
         trainer.end_episode()
         print(" Done!")
 
         # Periodically save the model.
         if p % 5 == 0:
-            trainer.save(save_path)
+            model.save(cfg.save_path)
             print("Saved Model")
 
-trainer.save(save_path)
+model.save(cfg.save_path)
 print("Done training!")
 
 

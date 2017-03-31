@@ -1,11 +1,15 @@
 import numpy as np
 import random
+import parameter_config as cfg
 
 
 class ExperienceBuffer():
-    def __init__(self, buffer_size = 50000):
+    def __init__(self, buffer_size=-1):
         self.buffer = []
-        self.buffer_size = buffer_size
+        if buffer_size < 0:
+            self.buffer_size = cfg.buffer_size
+        else:
+            self.buffer_size = buffer_size
 
     def add(self, experience):
         if len(self.buffer) + 1 >= self.buffer_size:

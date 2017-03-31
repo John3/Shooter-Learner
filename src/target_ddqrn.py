@@ -1,13 +1,11 @@
 import tensorflow as tf
+import parameter_config as cfg
 
 
 class target_ddqrn:
-
-    tau = 0.001 # Rate to update target network toward primary network
-
     def __init__(self, ddqrn, trainables):
         self.ddqrn = ddqrn
-        self.target_ops = self.update_target_graph(trainables, self.tau)
+        self.target_ops = self.update_target_graph(trainables, cfg.tau)
         self.Q_out = ddqrn.Q_out
 
     def update(self, sess):

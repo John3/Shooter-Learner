@@ -1,6 +1,7 @@
 import numpy as np
 from itertools import tee
 import os
+import parameter_config as cfg
 
 
 def feature_index_map(x):
@@ -33,8 +34,8 @@ class LogEntry:
         self.reward = reward
         self.end = False
 
-    def get_feature_vector(self, features):
-        return [self.feature_vector[feature_index_map(x)] for x in features]
+    def get_feature_vector(self):
+        return [self.feature_vector[feature_index_map(x)] for x in cfg.features]
 
     def toArray(self):
         res = list()

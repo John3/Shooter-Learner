@@ -1,33 +1,25 @@
 import numpy as np
 import tensorflow as tf
 import os
+import parameter_config as cfg
 
 from experience_buffer import ExperienceBuffer
 
 
 class DDQRNTrainer:
 
-    pre_train_steps = 10000
-
-    train_freq = 4
-    discount_factor = 0.99
-
-    fv_size = 15  # Size of the FeatureVector (state)
-
-    def __init__(self, ddqrn, target, sess, batch_size, trace_length):
+    def __init__(self, ddqrn, target, sess):
         self.ddqrn = ddqrn
         self.target = target
         self.sess = sess
-        self.batch_size = batch_size
-        self.trace_length = trace_length
+        self.batch_size = cfg.batch_size
+        self.trace_length = cfg.trace_length
         self.buffer = ExperienceBuffer()
 
         self.j_list = []
         self.r_list = []
 
         self.total_steps = 0
-
-        self.saver = tf.train.Saver()
 
         self.tensorboard_setup()
         self.summary = None
@@ -57,12 +49,12 @@ class DDQRNTrainer:
         # Save the experience
         self.episode_buffer.add(np.reshape(np.array([s, a, r, s1, end]), [1, 5]))
 
-        if self.total_steps > self.pre_train_steps:  # Only start training after some amount of steps, so we have something in our experience buffer
+        if self.total_steps > cfg.pre_train_steps:  # Only start training after some amount of steps, so we have something in our experience buffer
 
-            if self.total_steps % self.train_freq == 0:
+            if self.total_steps % cfg.train_freq == 0:
 
                 # Reset the hidden state
-                state_train = (np.zeros([self.batch_size, self.fv_size]), np.zeros([self.batch_size, self.fv_size]))
+                state_train = (np.zeros([self.batch_size, cfg.fv_size]), np.zeros([self.batch_size, cfg.fv_size]))
 
                 train_batch = self.buffer.sample(self.batch_size, self.trace_length)  # Get a random batch of experiences
 
@@ -84,7 +76,7 @@ class DDQRNTrainer:
 
                 end_multiplier = -(train_batch[:, 4] - 1)
                 double_Q = Q2[range(self.batch_size * self.trace_length), Q1]
-                target_Q = train_batch[:, 2] + (self.discount_factor * double_Q * end_multiplier)
+                target_Q = train_batch[:, 2] + (cfg.discount_factor * double_Q * end_multiplier)
 
                 # Update the network with the target values
 
@@ -102,21 +94,6 @@ class DDQRNTrainer:
                 self.target.update(self.sess)  # Set the target network to be equal to the primary network
 
         self.r_all += r
-
-    def load(self, path):
-        print('Loading Model...')
-        ckpt = tf.train.get_checkpoint_state(path)
-        self.saver.restore(self.sess, ckpt.model_checkpoint_path)
-        self.buffer.load(path)
-        self.total_steps = self.pre_train_steps
-
-    def save(self, path):
-        # Make a path for our model to be saved in.
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-        self.saver.save(self.sess, path + '/model')
-        self.buffer.save(path)
 
 
     def tensorboard_setup(self):

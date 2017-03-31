@@ -1,15 +1,16 @@
 import tensorflow as tf
 import numpy as np
+import parameter_config as cfg
 
 from external.act_cell import ACTCell
 
 
 class DDQRN:
 
-    def __init__(self, sess, input_size, output_size, scope):
+    def __init__(self, sess, scope):
         self.sess = sess
-        self.output_size = output_size
-        self.input_size = input_size
+        self.output_size = len(cfg.prediction_to_action)
+        self.input_size = len(cfg.features)
         self.scope = scope
 
         self.act = True
@@ -20,14 +21,14 @@ class DDQRN:
 
             self.target_Q = tf.placeholder(name="target_Q", shape=[None], dtype=tf.float32)
             self.actions = tf.placeholder(name="actions", shape=[None], dtype=tf.int32)
-            self.input_frames = tf.placeholder(name="input_frames", shape=[None, input_size], dtype=tf.float32)
+            self.input_frames = tf.placeholder(name="input_frames", shape=[None, self.input_size], dtype=tf.float32)
 
-            self.cell = tf.contrib.rnn.LSTMCell(num_units=input_size)
+            self.cell = tf.contrib.rnn.LSTMCell(num_units=self.input_size)
             if self.act:
                 self.inner_cell = self.cell
-                self.cell = ACTCell(num_units=input_size, cell=self.inner_cell, epsilon=0.01,
+                self.cell = ACTCell(num_units=self.input_size, cell=self.inner_cell, epsilon=0.01,
                                     max_computation=50, batch_size=self.batch_size)
-            self.state = (np.zeros([1, input_size]), np.zeros([1, input_size]))
+            self.state = (np.zeros([1, self.input_size]), np.zeros([1, self.input_size]))
 
             input_layer_output = self.build_input_layer(self.input_frames)
             lstm_layer_output = self.build_lstm_layer(input_layer_output)

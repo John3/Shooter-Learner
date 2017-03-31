@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import parameter_config as cfg
 
 
 class Individual:
@@ -37,14 +38,13 @@ class Individual:
 
 class EvolutionHost:
 
-    def __init__(self, path, name, saver):
+    def __init__(self, name, model):
         self.sess = tf.Session()
         #self.saver = tf.train.import_meta_graph(path + ".meta")
-        self.saver = saver
-        ckpt = tf.train.get_checkpoint_state(path)
-        self.saver.restore(self.sess, ckpt.model_checkpoint_path)
+        self.model = model
+        ckpt = tf.train.get_checkpoint_state(cfg.save_path)
+        self.model.restore(self.sess, ckpt.model_checkpoint_path)
 
-        #self.saver.restore(self.sess, path)
         self.variable_tensors = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="main_DDQRN")
         self.variables = []
         self.mutations = []
@@ -56,9 +56,4 @@ class EvolutionHost:
             self.mutations.append(np.random.normal(size=np_var.shape))
 
         self.individual = Individual(self.variables, self.mutations, self.name)
-
-
-if __name__ == "__main__":
-    host_individual = EvolutionHost("./dqn/model", "host").individual
-    host_individual.generate_offspring("simon")
 
