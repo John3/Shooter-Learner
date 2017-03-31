@@ -13,7 +13,7 @@ class DDQRN:
         self.input_size = len(cfg.features)
         self.scope = scope
 
-        self.act = True
+        self.act = cfg.use_act
 
         with tf.name_scope(scope):
             self.train_length = tf.placeholder(dtype=tf.int32, name="train_length")
