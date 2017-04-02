@@ -81,6 +81,7 @@ print("Done training!")
 
 server = SharpShooterServer()
 server.start()
+print("started Server")
 i = 1
 while True:
     server.receive_message(ai_server)

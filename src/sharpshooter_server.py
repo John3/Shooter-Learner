@@ -13,6 +13,7 @@ class SharpShooterServer:
 
     def wait_for_game(self):
         message = self.socket.recv_json()
+        print("waiting for game")
         if not message.success:
             return self.wait_for_game()
         else:
