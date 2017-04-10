@@ -99,5 +99,5 @@ class DDQRNTrainer:
     def tensorboard_setup(self):
         self.merged = tf.summary.merge_all(self.ddqrn.scope)
 
-        self.train_writer = tf.summary.FileWriter("summaries/logs/train/", self.ddqrn.sess.graph)
-        self.test_writer = tf.summary.FileWriter("summaries/logs/test/")
+        self.train_writer = tf.summary.FileWriter(cfg.train_summaries_path, self.ddqrn.sess.graph)
+        self.test_writer = tf.summary.FileWriter(cfg.test_summaries_path)

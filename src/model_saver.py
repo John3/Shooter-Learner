@@ -18,6 +18,8 @@ class ModelSaver:
     def load(self, path):
         print('Loading Model...')
         ckpt = tf.train.get_checkpoint_state(path)
+        if ckpt is None:
+            return
         self.saver.restore(self.ddqrn.sess, ckpt.model_checkpoint_path)
         self.trainer.buffer.load(path)
         self.trainer.total_steps = cfg.pre_train_steps

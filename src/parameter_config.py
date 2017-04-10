@@ -11,6 +11,10 @@ train_freq = 4
 
 load_model = False
 
+log_folder = "data/bai_vs_turing_small"
+#log_folder = "data/bai_vs_turing"
+train_summaries_path = "summaries/logs/train/"
+test_summaries_path = "summaries/logs/test/"
 save_path = "./dqn"
 player_number = 0
 

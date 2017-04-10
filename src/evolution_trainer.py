@@ -43,7 +43,8 @@ class EvolutionHost:
         #self.saver = tf.train.import_meta_graph(path + ".meta")
         self.model = model
         ckpt = tf.train.get_checkpoint_state(cfg.save_path)
-        self.model.restore(self.sess, ckpt.model_checkpoint_path)
+        if ckpt is not None:
+            self.model.restore(self.sess, ckpt.model_checkpoint_path)
 
         self.variable_tensors = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="main_DDQRN")
         self.variables = []
