@@ -69,20 +69,21 @@ prediction_to_action = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 # ------------------Training--------------------
 start_e = 1  # Starting probability of choosing a random action
 end_e = 0.1  # Ending probability of choosing a random action
-steps_e = 10000  # How many steps untill the probability of choosing a random action becomes end_e
+steps_e = 20000  # How many steps untill the probability of choosing a random action becomes end_e
 
 step_drop = (start_e - end_e) / steps_e
 
 buffer_size = 50000
 
 # -----------------DDQRN Trainer----------------
-pre_train_steps = 10000
+pre_train_steps = 15000
 
 fv_size = 15  # Size of the FeatureVector (state)
 
 
 # ----------------------DDQRN-------------------
-use_act = False
+use_act = True
+act_max_computation=10
 tau = 0.001 # Rate to update target network toward primary network
 
 # ----------------Evolution---------------------
