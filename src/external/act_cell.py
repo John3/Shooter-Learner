@@ -28,6 +28,11 @@ class ACTCell(RNNCell):
         self.ACT_iterations = []
         self.sigmoid_output = sigmoid_output
 
+        if hasattr(self.cell, "_state_is_tuple"):
+            self._state_is_tuple = self.cell._state_is_tuple
+        else:
+            self._state_is_tuple = False
+
     @property
     def input_size(self):
         return self._num_units
@@ -40,19 +45,14 @@ class ACTCell(RNNCell):
 
     def __call__(self, inputs, state, timestep=0, scope=None):
 
-        self.state_is_tuple = False
-        if isinstance(state, (tuple, list)):
+        if self._state_is_tuple:
             state = tf.concat(state, 1)
-            self.state_is_tuple = True
 
         with vs.variable_scope(scope or type(self).__name__):
             # define within cell constants/ counters used to control while loop for ACTStep
             prob = tf.fill([self.batch_size], tf.constant(0.0, dtype=tf.float32), "prob")#tf.zeros(self.batch_size, name="prob")
             prob_compare = tf.zeros_like(prob, tf.float32, name="prob_compare")
             counter = tf.zeros_like(prob, tf.float32, name="counter")
-            #acc_outputs = tf.zeros_like(state, tf.float32, name="output_accumulator")
-            #acc_states = tf.zeros_like(state, tf.float32, name="state_accumulator")
-            #batch_mask = tf.fill(self.batch_size, True, name="batch_mask")
 
             acc_outputs = tf.fill([self.batch_size, self.output_size], 0.0, name='output_accumulator')
             acc_states = tf.zeros_like(state, tf.float32, name="state_accumulator")
@@ -80,7 +80,7 @@ class ACTCell(RNNCell):
         if self.sigmoid_output:
             output = tf.sigmoid(tf.contrib.rnn.BasicRNNCell._linear(output,self.batch_size,0.0))
 
-        if self.state_is_tuple:
+        if self._state_is_tuple:
             next_c, next_h = tf.split(next_state, 2, 1)
             next_state = tf.contrib.rnn.LSTMStateTuple(next_c, next_h)
 
@@ -111,22 +111,17 @@ class ACTCell(RNNCell):
 
         input_with_flags = tf.concat([binary_flag, input], 1)
 
-        if self.state_is_tuple:
+        if self._state_is_tuple:
             (c, h) = tf.split(state, 2, 1)
             state = tf.contrib.rnn.LSTMStateTuple(c, h)
 
         output, new_state = static_rnn(cell=self.cell, inputs=[input_with_flags], initial_state=state, scope=type(self.cell).__name__)
 
-        if self.state_is_tuple:
+        if self._state_is_tuple:
             new_state = tf.concat(new_state, 1)
 
         with tf.variable_scope('sigmoid_activation_for_pondering'):
-            #p_W = tf.Variable(tf.random_normal([tf.shape(new_state[0]), tf.forward_size_2]), name="weights")
-            #p_b = tf.Variable(tf.random_normal([forward_size_2]), name="biases")
-
-            #p = tf.sigmoid(tf.nn.xw_plus_b(forward_1, forward_W2, forward_b2), name="activation")
-            #p = tf.squeeze(tf.layers.dense(new_state, 1, activation=tf.sigmoid))
-            p = tf.squeeze(tf.sigmoid(core_rnn_cell_impl._linear(new_state, 1, True)), squeeze_dims=1)
+            p = tf.squeeze(tf.layers.dense(new_state, 1, activation=tf.sigmoid, use_bias=True), squeeze_dims=1)
 
         # Multiply by the previous mask as if we stopped before, we don't want to start again
         # if we generate a p less than p_t-1 for a given example.

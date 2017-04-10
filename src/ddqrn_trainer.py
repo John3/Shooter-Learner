@@ -94,7 +94,6 @@ class DDQRNTrainer:
 
         self.r_all += r
 
-
     def tensorboard_setup(self):
         self.merged = tf.summary.merge_all(self.ddqrn.scope)
 

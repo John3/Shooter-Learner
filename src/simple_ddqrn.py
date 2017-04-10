@@ -27,7 +27,7 @@ class DDQRN:
             if self.act:
                 self.inner_cell = self.cell
                 self.cell = ACTCell(num_units=self.input_size, cell=self.inner_cell, epsilon=0.01,
-                                    max_computation=50, batch_size=self.batch_size)
+                                    max_computation=cfg.act_max_computation, batch_size=self.batch_size)
             self.state = (np.zeros([1, self.input_size]), np.zeros([1, self.input_size]))
 
             input_layer_output = self.build_input_layer(self.input_frames)

@@ -83,8 +83,9 @@ fv_size = 15  # Size of the FeatureVector (state)
 
 
 # ----------------------DDQRN-------------------
-use_act = False
-tau = 0.001  # Rate to update target network toward primary network
+use_act = True
+act_max_computation=10
+tau = 0.001 # Rate to update target network toward primary network
 
 # ----------------Evolution---------------------
 
