@@ -1,7 +1,7 @@
 import json
 import os
 
-from evolution_trainer import  Individual
+from evolution_trainer import Individual
 from typing import List
 import random
 import tensorflow as tf
@@ -28,7 +28,7 @@ class TournamentSelectionServer:
         self.current_reward = 0
         self.rnn_state = None
         self.game_has_ended = False
-
+        self.path = "./dqn"
         self.last_enemy_health = 20
         self.a = None
 
@@ -76,6 +76,8 @@ class TournamentSelectionServer:
                     self.current_round = 0
                     self.current_reward = 0
                     print("There are %s individuals left" % len(self.population))
+                    print("saving population and current population")
+                    self.model.save_population(self.path)
                     if len(self.population) == 0:
                         print("Selecting an individual")
                         self.selection()
@@ -138,9 +140,9 @@ class TournamentSelectionServer:
         self.population.sort(key=lambda x: x.fitness, reverse=True)
         best_individual = self.population[0]
         self.update_graph(best_individual)
-        path = "./dqn"
-        if not os.path.exists(path):
-            os.makedirs(path)
+
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
 
         generation, summary = self.ddqrn.sess.run([self.ddqrn.inc_generation, self.fitness_summary],
                                                   feed_dict={self.fitness_tensor: best_individual.fitness})
@@ -149,7 +151,7 @@ class TournamentSelectionServer:
         self.writer.add_summary(summary, generation)
 
         self.population.extend(self.generate_new_population())
-        self.model.save(path + '/model-evolution')
+        self.model.save(self.path)
 
     def random_sample(self, count) -> List[Individual]:
         res = []

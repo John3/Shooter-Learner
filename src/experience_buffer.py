@@ -13,7 +13,8 @@ class ExperienceBuffer():
 
     def add(self, experience):
         if len(self.buffer) + 1 >= self.buffer_size:
-            self.buffer[0:(len(self.buffer) + 1) - self.buffer_size] = [] #todo review this piece
+            self.buffer.pop(0)
+            #self.buffer[0:(len(self.buffer) + 1) - self.buffer_size] = [] #todo review this piece
         self.buffer.append(experience)
 
     def sample(self, batch_size, trace_length):

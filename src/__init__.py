@@ -27,11 +27,11 @@ model = ModelSaver(ddqrn, trainer)
 
 host = EvolutionHost("host", model)
 population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
+#ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
+ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
 
 model.ai_server = ai_server
 
-#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs)
 
 
 if cfg.load_model:
@@ -86,6 +86,6 @@ i = 1
 while True:
     server.receive_message(ai_server)
     if ai_server.game_has_ended:
-        if i % 50000 == 0 and type(ai_server) is AIServer:
-            ai_server.start_evaluation(1000)
+        if i % 5000 == 0 and type(ai_server) is AIServer:
+            ai_server.start_evaluation(100)
         i += 1

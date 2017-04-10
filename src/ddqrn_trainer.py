@@ -44,7 +44,6 @@ class DDQRNTrainer:
             print("Experienced a reward of: %s" % r)
         self.j += 1 # Increment the number of steps by one
         self.total_steps += 1
-
         # todo do we need this when we have it in the log_file? Maybe the log_file should be saved to an experience_buffer
         # Save the experience
         self.episode_buffer.add(np.reshape(np.array([s, a, r, s1, end]), [1, 5]))
@@ -99,5 +98,5 @@ class DDQRNTrainer:
     def tensorboard_setup(self):
         self.merged = tf.summary.merge_all(self.ddqrn.scope)
 
-        self.train_writer = tf.summary.FileWriter("summaries/logs/train/", self.ddqrn.sess.graph)
-        self.test_writer = tf.summary.FileWriter("summaries/logs/test/")
+        self.train_writer = tf.summary.FileWriter("summaries/logs/train/"+ cfg.run_name, self.ddqrn.sess.graph)
+        self.test_writer = tf.summary.FileWriter("summaries/logs/test/" + cfg.run_name)

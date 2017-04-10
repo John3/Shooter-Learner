@@ -51,3 +51,8 @@ fabric.properties
 
 src/gameLogs/Gamelogs
 **/*.npz
+/.idea/misc.xml
+/.idea/SharpShooter-Learner.iml
+/.idea/serialmonitor_settings.xml
+/.idea/modules.xml
+/.idea/vcs.xml

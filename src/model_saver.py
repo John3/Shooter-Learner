@@ -20,13 +20,13 @@ class ModelSaver:
         ckpt = tf.train.get_checkpoint_state(path)
         self.saver.restore(self.ddqrn.sess, ckpt.model_checkpoint_path)
         self.trainer.buffer.load(path)
-        self.trainer.total_steps = cfg.pre_train_steps
+        #self.trainer.total_steps = cfg.pre_train_steps
 
         if type(self.ai_server) is TournamentSelectionServer:
-            self.ai_server.load_population()
 
-            with np.load("data/evolution.npz") as data:
+            with np.load(path + "/evolution.npz") as data:
                 self.ai_server.population = list(data['population'])
+                self.ai_server.evaluated_population = list(data['evaluated_population'])
             self.ai_server.current_individual = self.ai_server.population.pop()
 
     def save(self, path):
@@ -38,7 +38,14 @@ class ModelSaver:
         self.trainer.buffer.save(path)
 
         if type(self.ai_server) is TournamentSelectionServer:
-            np.savez_compressed("data/evolution", population=self.ai_server.population)
+            np.savez_compressed(path + "/evolution", population=self.ai_server.population,
+                                evaluated_population=self.ai_server.evaluated_population)
+
+    def save_population(self, path):
+        if not os.path.exists(path):
+            os.makedirs(path)
+        np.savez_compressed(path + "/evolution", population=self.ai_server.population,
+                            evaluated_population=self.ai_server.evaluated_population)
 
     def restore(self, sess, path):
         self.saver.restore(sess, path)
