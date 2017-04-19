@@ -91,7 +91,7 @@ model.ai_server = ai_server
 server = SharpShooterServer()
 server.start()
 print("started Server")
-i = 1
+i = ddqrn.sess.run([ddqrn.train_count])[0]
 while True:
     server.receive_message(ai_server)
     if ai_server.game_has_ended:
