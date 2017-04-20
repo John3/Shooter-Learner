@@ -3,14 +3,14 @@ import math
 # ------------ Training parameters --------------
 
 run_name = "FreksenThinkDeep"
-batch_size = 4  # Number of traces to use for each training step
+batch_size = 100  # Number of traces to use for each training step
 trace_length = 76  # How long each experience trace will be
 discount_factor = .99
 
 train_freq = 4
 # How often do we train
 
-load_model = True
+load_model = False
 
 save_path = "./dqn"
 player_number = 0
@@ -74,7 +74,7 @@ steps_e = 20000  # How many steps untill the probability of choosing a random ac
 
 step_drop = (start_e - end_e) / steps_e
 
-buffer_size = 50000
+buffer_size = 1000
 
 # -----------------DDQRN Trainer----------------
 pre_train_steps = 15000
