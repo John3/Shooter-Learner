@@ -6,13 +6,14 @@ import parameter_config as cfg
 
 class AIServer:
 
-    def __init__(self, features, prediction_to_action, trainer, ddqrn, reward_function):
+    def __init__(self, features, prediction_to_action, trainer, ddqrn, reward_function, model):
         self.features = features
         self.prediction_to_action = prediction_to_action
         self.trainer = trainer
         self.ddqrn = ddqrn
         self.reward_function = reward_function
 
+        self.model = model
         self.training = True
         self.fv0 = None
         self.a = None
@@ -69,7 +70,7 @@ class AIServer:
                     self.trainer.experience(self.fv0, self.a, r, self.fv0, True)
                     self.trainer.end_episode()
                     if train_count % 10 == 0:
-                        self.trainer.save(cfg.save_path)
+                        self.model.save(cfg.save_path)
                 else:
                     self.ddqrn.sess.run([self.ddqrn.inc_evaluation_count])
                     self.num_games += 1
