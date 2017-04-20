@@ -89,7 +89,7 @@ class AIServer:
             if self.fv0 is not None and self.training:
                 self.trainer.experience(self.fv0, self.a, r, fv1, False)
 
-            if np.random.rand(1) < self.e or self.trainer.total_steps < self.trainer.pre_train_steps:
+            if np.random.rand(1) < self.e or self.trainer.total_steps < cfg.pre_train_steps:
                 self.ddqrn.state = self.ddqrn.get_state(
                     input=[fv1],
                     train_length=1,

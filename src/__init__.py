@@ -21,7 +21,6 @@ sess.run(tf.global_variables_initializer())
 
 ddqrn_target.update(sess)  # Set the target network to be equal to the primary network
 
-
 trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess)
 
 model = ModelSaver(ddqrn, trainer)
@@ -77,7 +76,6 @@ for p, log_file_pair in enumerate(logs):
 
 model.save(cfg.save_path)
 print("Done training!")
-
 
 host = EvolutionHost("host", model)
 population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
