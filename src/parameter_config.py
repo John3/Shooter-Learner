@@ -2,7 +2,7 @@ import math
 
 # ------------ Training parameters --------------
 
-run_name = "FreksenThinkDeep"
+run_name = "ScottSteinerEvo"
 batch_size = 100  # Number of traces to use for each training step
 trace_length = 76  # How long each experience trace will be
 discount_factor = .99
@@ -10,7 +10,7 @@ discount_factor = .99
 train_freq = 4
 # How often do we train
 
-load_model = False
+load_model = True
 
 save_path = "./dqn"
 player_number = 0

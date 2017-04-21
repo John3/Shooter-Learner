@@ -23,11 +23,11 @@ class ModelSaver:
         #self.trainer.total_steps = cfg.pre_train_steps
 
         if type(self.ai_server) is TournamentSelectionServer:
-
-            with np.load(path + "/evolution.npz") as data:
-                self.ai_server.population = list(data['population'])
-                self.ai_server.evaluated_population = list(data['evaluated_population'])
-            self.ai_server.current_individual = self.ai_server.population.pop()
+            if os.path.exists(path + "/evolution.npz"):
+                with np.load(path + "/evolution.npz") as data:
+                    self.ai_server.population = list(data['population'])
+                    self.ai_server.evaluated_population = list(data['evaluated_population'])
+                self.ai_server.current_individual = self.ai_server.population.pop()
 
     def save(self, path):
         # Make a path for our model to be saved in.

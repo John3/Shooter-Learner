@@ -24,10 +24,10 @@ trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess)
 
 model = ModelSaver(ddqrn, trainer)
 
-#host = EvolutionHost("host", model)
-#population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-#ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
-ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
+host = EvolutionHost("host", model)
+population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
+ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
+#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
 
 model.ai_server = ai_server
 
@@ -73,17 +73,6 @@ else:
 
 model.save(cfg.save_path)
 print("Done training!")
-
-
-#host = EvolutionHost("host", model)
-#population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-#ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
-
-#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs)
-
-
-model.ai_server = ai_server
-
 
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
