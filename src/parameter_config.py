@@ -12,6 +12,9 @@ train_freq = 4
 
 load_model = True
 
+log_folder = "data/bai_vs_turing_small"
+#log_folder = "data/bai_vs_turing"
+run_name = "bigger_batch_size"
 save_path = "./dqn"
 player_number = 0
 
