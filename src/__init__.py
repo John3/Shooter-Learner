@@ -38,19 +38,15 @@ if cfg.load_model:
     model.load(cfg.save_path)
 
 initial_count = ddqrn.sess.run([ddqrn.train_count])[0]
-number_of_logs_to_train_on = 1000
 print("Loading logs...")
 logs = parse_logs_in_folder(cfg.log_folder)
 print("Training on %s game logs" % len(logs))
-start_time = time()
+time_file = open('times.dat', 'w')
 for p, log_file_pair in enumerate(logs):
+    start_time = time()
     if p < initial_count:
         print("Skipping log number %s" % p)
         continue
-    if p == number_of_logs_to_train_on:
-        end_time = time()
-        print("Training took %s seconds" % (end_time - start_time))
-        exit(0)
     log_file_0, log_file_1 = log_file_pair
     print("Training on log number %s..." % p, end="", flush=True)
     trainer.start_episode()
@@ -76,12 +72,15 @@ for p, log_file_pair in enumerate(logs):
     #    model.save(cfg.save_path)
     trainer.end_episode()
     print(" Done!")
+    end_time = time()
+    print("Training took %s seconds" % (end_time - start_time))
+    time_file.write("%s %s\n" % (p, end_time - start_time))
 
     # Periodically save the model.
     if p % 50 == 0:
         model.save(cfg.save_path)
         print("Saved Model")
-
+time_file.close()
 model.save(cfg.save_path)
 print("Done training!")
 

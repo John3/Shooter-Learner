@@ -38,7 +38,14 @@ class DDQRN:
 
             with tf.name_scope("loss"):
                 td_error = tf.square(self.target_Q - Q)
-                loss = tf.reduce_mean(td_error)
+
+                # In order to only propogate accurate gradients through the network, we will mask the first
+                # half of the losses for each trace as per Lample & Chatlot 2016
+                maskA = tf.zeros([self.batch_size, self.train_length // 2])
+                maskB = tf.ones([self.batch_size, self.train_length // 2])
+                mask = tf.reshape(tf.concat([maskA, maskB], 1), [-1])
+
+                loss = tf.reduce_mean(td_error * mask)
                 tf.summary.scalar("loss", loss, [scope])
                 tf.summary.scalar("Q", tf.reduce_mean(Q), [scope])
                 tf.summary.scalar("target_Q", tf.reduce_mean(self.target_Q), [scope])
