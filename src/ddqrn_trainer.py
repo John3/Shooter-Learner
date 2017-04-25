@@ -25,7 +25,7 @@ class DDQRNTrainer:
         self.summary = None
 
     def start_episode(self):
-        self.episode_buffer = ExperienceBuffer()
+        self.episode_buffer = ExperienceBuffer(3500)
         self.j = 0 # The number of steps we have taken
         self.r_all = 0
 
@@ -40,6 +40,7 @@ class DDQRNTrainer:
                 self.train_writer.add_summary(self.summary, train_count)
 
     def experience(self, s, a, r, s1, end):
+        self.batch_size = min(len(self.buffer.buffer) - 1, cfg.batch_size)
         if r != 0:
             print("Experienced a reward of: %s" % r)
         self.j += 1 # Increment the number of steps by one

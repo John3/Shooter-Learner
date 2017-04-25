@@ -2,8 +2,8 @@ import math
 
 # ------------ Training parameters --------------
 
-run_name = "FreksenThinkDeep"
-batch_size = 4  # Number of traces to use for each training step
+run_name = "ScottSteinerEvo"
+batch_size = 100  # Number of traces to use for each training step
 trace_length = 76  # How long each experience trace will be
 discount_factor = .99
 
@@ -12,6 +12,9 @@ train_freq = 4
 
 load_model = True
 
+log_folder = "data/bai_vs_turing_small"
+#log_folder = "data/bai_vs_turing"
+run_name = "bigger_batch_size"
 save_path = "./dqn"
 player_number = 0
 
@@ -74,7 +77,7 @@ steps_e = 20000  # How many steps untill the probability of choosing a random ac
 
 step_drop = (start_e - end_e) / steps_e
 
-buffer_size = 50000
+buffer_size = 1000
 
 # -----------------DDQRN Trainer----------------
 pre_train_steps = 15000
@@ -83,7 +86,7 @@ fv_size = 15  # Size of the FeatureVector (state)
 
 
 # ----------------------DDQRN-------------------
-use_act = True
+use_act = False
 act_max_computation=10
 tau = 0.001 # Rate to update target network toward primary network
 

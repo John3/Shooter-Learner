@@ -1,4 +1,5 @@
 import tensorflow as tf
+from time import time
 
 from ai_server import AIServer
 from ddqrn_trainer import DDQRNTrainer
@@ -26,8 +27,8 @@ model = ModelSaver(ddqrn, trainer)
 
 host = EvolutionHost("host", model)
 population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-#ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
-ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
+ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
+#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
 
 model.ai_server = ai_server
 
@@ -35,55 +36,54 @@ model.ai_server = ai_server
 
 if cfg.load_model:
     model.load(cfg.save_path)
-else:
-    print("Loading logs...")
-    logs = parse_logs_in_folder("data/game_logs")
-    print("Training on %s game logs" % len(logs))
-    for p, log_file_pair in enumerate(logs):
-        log_file_0, log_file_1 = log_file_pair
-        print("Training on log number %s..." % p, end="", flush=True)
-        trainer.start_episode()
-        for i, event in enumerate(log_file_0):
-            next_event = log_file_0[i + 1]
-            # Observe play
-            s = event.get_feature_vector()
-            a = event.action
-            s1 = next_event.get_feature_vector()
-            r = next_event.reward
 
-            end = next_event.end
+initial_count = ddqrn.sess.run([ddqrn.train_count])[0]
+number_of_logs_to_train_on = 1000
+print("Loading logs...")
+logs = parse_logs_in_folder(cfg.log_folder)
+print("Training on %s game logs" % len(logs))
+start_time = time()
+for p, log_file_pair in enumerate(logs):
+    if p < initial_count:
+        print("Skipping log number %s" % p)
+        continue
+    if p == number_of_logs_to_train_on:
+        end_time = time()
+        print("Training took %s seconds" % (end_time - start_time))
+        exit(0)
+    log_file_0, log_file_1 = log_file_pair
+    print("Training on log number %s..." % p, end="", flush=True)
+    trainer.start_episode()
+    for i, event in enumerate(log_file_0):
+        next_event = log_file_0[i + 1]
+        # Observe play
+        s = event.get_feature_vector()
+        a = event.action
+        s1 = next_event.get_feature_vector()
+        r = next_event.reward
 
-            if r > 0:
-                print(" Ooh reward!...", end="", flush=True)
+        end = next_event.end
 
-            trainer.experience(s, a, r, s1, end)
-            if end:
-                break
+        if r > 0:
+            print(" Ooh reward!...", end="", flush=True)
 
-        train_count = ddqrn.sess.run([ddqrn.inc_train_count])[0]
-        if train_count % 10 == 0:
-            model.save(cfg.save_path)
-        trainer.end_episode()
-        print(" Done!")
+        trainer.experience(s, a, r, s1, end)
+        if end:
+            break
 
-        # Periodically save the model.
-        if p % 5 == 0:
-            model.save(cfg.save_path)
-            print("Saved Model")
+    train_count = ddqrn.sess.run([ddqrn.inc_train_count])[0]
+    #if train_count % 100 == 0:
+    #    model.save(cfg.save_path)
+    trainer.end_episode()
+    print(" Done!")
+
+    # Periodically save the model.
+    if p % 50 == 0:
+        model.save(cfg.save_path)
+        print("Saved Model")
 
 model.save(cfg.save_path)
 print("Done training!")
-
-
-#host = EvolutionHost("host", model)
-#population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-#ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
-
-#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs)
-
-
-model.ai_server = ai_server
-
 
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
@@ -91,7 +91,7 @@ model.ai_server = ai_server
 server = SharpShooterServer()
 server.start()
 print("started Server")
-i = 1
+i = ddqrn.sess.run([ddqrn.train_count])[0]
 while True:
     server.receive_message(ai_server)
     if ai_server.game_has_ended:
