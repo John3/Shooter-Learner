@@ -9,9 +9,9 @@ class target_ddqrn:
         self.target_ops = self.update_target_graph(trainables)
         self.Q_out = ddqrn.Q_out
 
-    def update(self, sess):
+    def update(self, sess, tau=cfg.tau):
         # Sets the target network to be equal to the primary network
-        self.update_target(self.target_ops, sess)
+        self.update_target(self.target_ops, sess, tau=tau)
 
     def get_Q_out(self, input, train_length, batch_size, state_in):
         return self.ddqrn.get_Q_out(input, train_length, batch_size, state_in)
