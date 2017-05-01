@@ -14,7 +14,9 @@ from tournament_selection_server import TournamentSelectionServer
 sess = tf.Session()
 
 ddqrn = DDQRN(sess, "main_DDQRN")
-ddqrn_target = target_ddqrn(DDQRN(sess, "target_DDQRN"), tf.trainable_variables())
+ddqrn_target = target_ddqrn(DDQRN(sess, "target_DDQRN"),
+                            [tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="main_DDQRN"),
+                             tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="target_DDQRN")])
 
 sess.run(tf.global_variables_initializer())
 
@@ -23,14 +25,6 @@ ddqrn_target.update(sess)  # Set the target network to be equal to the primary n
 trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess)
 
 model = ModelSaver(ddqrn, trainer)
-
-host = EvolutionHost("host", model)
-population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-#ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
-ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
-
-model.ai_server = ai_server
-
 
 
 if cfg.load_model:
@@ -75,12 +69,11 @@ model.save(cfg.save_path)
 print("Done training!")
 
 
-#host = EvolutionHost("host", model)
-#population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-#ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
+host = EvolutionHost("host", model)
+population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
+ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
 
-#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs)
-
+#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
 
 model.ai_server = ai_server
 
@@ -90,7 +83,6 @@ model.ai_server = ai_server
 
 server = SharpShooterServer()
 server.start()
-print("started Server")
 i = 1
 while True:
     server.receive_message(ai_server)
