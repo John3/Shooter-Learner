@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import parameter_config as cfg
+import os
 
 
 class ExperienceBuffer():
@@ -30,7 +31,7 @@ class ExperienceBuffer():
         np.savez("%s/experience_buffer.npz" % path, buffer=self.buffer, buffer_size=self.buffer_size)
 
     def load(self, path):
-        file = np.load("%s/experience_buffer.npz" % path)
-        self.buffer = list(file["buffer"])
-        self.buffer_size = file["buffer_size"]
-
+        if os.path.exists(path + "/experience_buffer.npz"):
+            file = np.load("%s/experience_buffer.npz" % path)
+            self.buffer = list(file["buffer"])
+            self.buffer_size = file["buffer_size"]

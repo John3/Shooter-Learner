@@ -56,3 +56,6 @@ src/gameLogs/Gamelogs
 /.idea/serialmonitor_settings.xml
 /.idea/modules.xml
 /.idea/vcs.xml
+
+# emacs autosave files
+**/#*
