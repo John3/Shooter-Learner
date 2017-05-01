@@ -152,7 +152,7 @@ class TournamentSelectionServer:
         self.writer.add_summary(summary, generation)
 
         self.population.extend(self.generate_new_population())
-        self.target.update(self.ddqrn.sess)
+        self.target.update(self.ddqrn.sess, tau=1.0)
         self.model.save(self.path)
 
     def random_sample(self, count) -> List[Individual]:
