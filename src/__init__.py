@@ -15,7 +15,9 @@ from tournament_selection_server import TournamentSelectionServer
 sess = tf.Session()
 
 ddqrn = DDQRN(sess, "main_DDQRN")
-ddqrn_target = target_ddqrn(DDQRN(sess, "target_DDQRN"), tf.trainable_variables())
+ddqrn_target = target_ddqrn(DDQRN(sess, "target_DDQRN"),
+                            [tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="main_DDQRN"),
+                             tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="target_DDQRN")])
 
 sess.run(tf.global_variables_initializer())
 
@@ -24,14 +26,6 @@ sess.run(tf.global_variables_initializer())
 trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess)
 
 model = ModelSaver(ddqrn, trainer)
-
-host = EvolutionHost("host", model)
-population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
-#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
-
-model.ai_server = ai_server
-
 
 
 if cfg.load_model:
@@ -68,8 +62,6 @@ for p, log_file_pair in enumerate(logs):
             break
 
     train_count = ddqrn.sess.run([ddqrn.inc_train_count])[0]
-    #if train_count % 100 == 0:
-    #    model.save(cfg.save_path)
     trainer.end_episode()
     print(" Done!")
     end_time = time()
@@ -83,6 +75,16 @@ for p, log_file_pair in enumerate(logs):
 time_file.close()
 model.save(cfg.save_path)
 print("Done training!")
+
+
+host = EvolutionHost("host", model)
+population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
+ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer, model)
+
+#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
+
+model.ai_server = ai_server
+
 
 # Assuming we have now done some kind of training.. Try to predict some actions!
 

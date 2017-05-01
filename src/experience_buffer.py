@@ -35,4 +35,3 @@ class ExperienceBuffer():
             file = np.load("%s/experience_buffer.npz" % path)
             self.buffer = list(file["buffer"])
             self.buffer_size = file["buffer_size"]
-
