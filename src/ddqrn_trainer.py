@@ -19,10 +19,28 @@ class DDQRNTrainer:
         self.j_list = []
         self.r_list = []
 
+        self.total_q = 0
+        self.total_q_out = 0
+        self.total_target_q = 0
+
         self.total_steps = 0
 
         self.tensorboard_setup()
         self.summary = None
+
+        with tf.name_scope("main_DDQRN"):
+            with tf.name_scope("extra_stats"):
+                self.rewards_tensor = tf.placeholder(tf.int32)
+                self.rewards_summary = tf.summary.scalar('rewards', self.rewards_tensor)
+                self.steps_tensor = tf.placeholder(tf.int32)
+                self.steps_summary = tf.summary.scalar('steps', self.steps_tensor)
+            with tf.name_scope("loss"):
+                self.average_q_out_tensor = tf.placeholder(tf.float32)
+                self.average_q_out_summary = tf.summary.scalar('average_q_out', self.average_q_out_tensor)
+                self.average_target_q_tensor = tf.placeholder(tf.float32)
+                self.average_target_q_summary = tf.summary.scalar('average_target_q', self.average_target_q_tensor)
+                self.extra_stats_summary = tf.summary.merge([self.rewards_summary, self.steps_summary,
+                                                             self.average_q_out_summary, self.average_target_q_summary])
 
     def start_episode(self):
         self.episode_buffer = ExperienceBuffer(3500)
@@ -34,10 +52,18 @@ class DDQRNTrainer:
         self.j_list.append(self.j)
         self.r_list.append(self.r_all)
 
+        self.extra_stats_merged = self.sess.run([self.extra_stats_summary, self.rewards_tensor, self.steps_tensor,
+                                                 self.average_q_out_tensor,
+                                                 self.average_target_q_summary],
+                                                feed_dict={self.rewards_tensor: self.r_all, self.steps_tensor: self.j,
+                                                           self.average_q_out_tensor: self.total_q_out / self.j,
+                                                           self.average_target_q_tensor: self.total_target_q / self.j})[0]
+
         if self.summary is not None:
-            train_count = self.ddqrn.sess.run([self.ddqrn.train_count])[0]
-            if train_count % 10 == 0:
-                self.train_writer.add_summary(self.summary, train_count)
+            train_count = self.ddqrn.sess.run([self.ddqrn.inc_train_count])[0]
+            self.train_writer.add_summary(self.summary, train_count)
+
+            self.train_writer.add_summary(self.extra_stats_merged, train_count)
 
     def experience(self, s, a, r, s1, end):
         self.batch_size = min(len(self.buffer.buffer) - 1, cfg.batch_size)
@@ -80,7 +106,7 @@ class DDQRNTrainer:
 
                 # Update the network with the target values
 
-                _, self.summary = self.ddqrn.get_update_model(
+                _, q_out, self.summary = self.ddqrn.get_update_model(
                     self.merged,
                     np.vstack(train_batch[:, 0]),
                     target_Q=target_Q,
@@ -90,8 +116,10 @@ class DDQRNTrainer:
                     state_in=state_train
                 )
 
-            if self.total_steps % 1000 == 0:
-                self.target.update(self.sess)  # Set the target network to be equal to the primary network
+                self.total_q_out += np.mean(q_out)
+                self.total_target_q += np.mean(target_Q)
+
+                self.target.update(self.sess)  # Move the target network towards the primary network
 
         self.r_all += r
 

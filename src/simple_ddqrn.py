@@ -33,11 +33,11 @@ class DDQRN:
             input_layer_output = self.build_input_layer(self.input_frames)
             lstm_layer_output = self.build_lstm_layer(input_layer_output)
             forward_layer_output = self.build_forward_layer(lstm_layer_output)
-            self.predict, Q, self.Q_out = self.build_output_layer(forward_layer_output)
+            self.predict, self.Q, self.Q_out = self.build_output_layer(forward_layer_output)
             tf.add_to_collection("predict", self.predict)
 
             with tf.name_scope("loss"):
-                td_error = tf.square(self.target_Q - Q)
+                td_error = tf.square(self.target_Q - self.Q)
 
                 # In order to only propogate accurate gradients through the network, we will mask the first
                 # half of the losses for each trace as per Lample & Chatlot 2016
@@ -46,9 +46,9 @@ class DDQRN:
                 mask = tf.reshape(tf.concat([maskA, maskB], 1), [-1])
 
                 loss = tf.reduce_mean(td_error * mask)
-                tf.summary.scalar("loss", loss, [scope])
-                tf.summary.scalar("Q", tf.reduce_mean(Q), [scope])
-                tf.summary.scalar("target_Q", tf.reduce_mean(self.target_Q), [scope])
+                self.loss_summary = tf.summary.scalar("loss", loss, [scope])
+                self.Q_summary = tf.summary.scalar("Q", tf.reduce_mean(self.Q), [scope])
+                self.target_Q_summary = tf.summary.scalar("target_Q", tf.reduce_mean(self.target_Q), [scope])
 
             with tf.name_scope("training"):
                 self.trainer = tf.train.AdamOptimizer(learning_rate=0.0001)
@@ -177,7 +177,7 @@ class DDQRN:
         })
 
     def get_update_model(self, merged, input, target_Q, actions, train_length, batch_size, state_in):
-        return self.sess.run([self.update_model, merged], feed_dict={
+        return self.sess.run([self.update_model, self.Q, merged], feed_dict={
             self.input_frames: input,
             self.target_Q: target_Q,
             self.actions: actions,

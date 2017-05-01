@@ -19,7 +19,7 @@ ddqrn_target = target_ddqrn(DDQRN(sess, "target_DDQRN"), tf.trainable_variables(
 
 sess.run(tf.global_variables_initializer())
 
-ddqrn_target.update(sess)  # Set the target network to be equal to the primary network
+#ddqrn_target.update(sess)  # Apparently not necessary
 
 trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess)
 

@@ -14,7 +14,6 @@ load_model = True
 
 log_folder = "data/bai_vs_turing_small"
 #log_folder = "data/bai_vs_turing"
-run_name = "bigger_batch_size"
 save_path = "./dqn"
 player_number = 0
 
@@ -22,7 +21,7 @@ player_number = 0
 def result_reward(winner):
     reward = 0
     if winner.startswith("player0"):
-        reward = 1
+        reward = 100000
     return reward
 
 
@@ -30,7 +29,7 @@ def meta_reward(last_action, last_enemy_health, fv):
     enemy_health = fv[10]
     reward = 0
     if last_action == 7 and enemy_health < last_enemy_health:
-        reward = 0.00001
+        reward = 1
     return reward
 
 rew_funcs = {
@@ -80,7 +79,7 @@ step_drop = (start_e - end_e) / steps_e
 buffer_size = 1000
 
 # -----------------DDQRN Trainer----------------
-pre_train_steps = 15000
+pre_train_steps = 200000
 
 fv_size = 15  # Size of the FeatureVector (state)
 

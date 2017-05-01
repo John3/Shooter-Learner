@@ -66,9 +66,9 @@ class AIServer:
                 r = self.reward_function["result_reward"](msg["result"])
 
                 if self.training:
-                    train_count = self.ddqrn.sess.run([self.ddqrn.inc_train_count])[0]
                     self.trainer.experience(self.fv0, self.a, r, self.fv0, True)
                     self.trainer.end_episode()
+                    train_count = self.ddqrn.sess.run([self.ddqrn.train_count])[0]
                     if train_count % 10 == 0:
                         self.model.save(cfg.save_path)
                 else:
@@ -90,7 +90,8 @@ class AIServer:
             if self.fv0 is not None and self.training:
                 self.trainer.experience(self.fv0, self.a, r, fv1, False)
 
-            if np.random.rand(1) < self.e or self.trainer.total_steps < cfg.pre_train_steps:
+            # NOTICE: If you are training from scratch, this should be changed to have a higher randomness
+            if  np.random.rand(1) < cfg.end_e:
                 self.ddqrn.state = self.ddqrn.get_state(
                     input=[fv1],
                     train_length=1,
