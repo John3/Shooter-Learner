@@ -33,7 +33,6 @@ ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_wr
 model.ai_server = ai_server
 
 
-
 if cfg.load_model:
     model.load(cfg.save_path)
 

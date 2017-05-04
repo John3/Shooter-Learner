@@ -152,6 +152,8 @@ class TournamentSelectionServer:
 
         self.population.extend(self.generate_new_population())
         self.model.save(self.path)
+        if generation >= 11:
+            exit()
 
     def random_sample(self, count) -> List[Individual]:
         res = []

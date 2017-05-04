@@ -2,7 +2,7 @@ import math
 
 # ------------ Training parameters --------------
 
-run_name = "ScottSteinerEvo"
+run_name = "BAIEvolution"
 batch_size = 100  # Number of traces to use for each training step
 trace_length = 76  # How long each experience trace will be
 discount_factor = .99
@@ -12,9 +12,8 @@ train_freq = 4
 
 load_model = True
 
-log_folder = "data/bai_vs_turing_small"
-#log_folder = "data/bai_vs_turing"
-run_name = "bigger_batch_size"
+#log_folder = "data/bai_vs_turing_small"
+log_folder = "data/bai_vs_turing"
 save_path = "./dqn"
 player_number = 0
 
