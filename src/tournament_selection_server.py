@@ -11,9 +11,10 @@ import parameter_config as cfg
 
 class TournamentSelectionServer:
 
-    def __init__(self, ddqrn, population: List[Individual],
+    def __init__(self, ddqrn, target, population: List[Individual],
                  model, writer):
         self.ddqrn = ddqrn
+        self.target = target
         self.model = model
         self.writer = writer
         self.evaluation_rounds = cfg.eval_rounds(0)
@@ -151,6 +152,7 @@ class TournamentSelectionServer:
         self.writer.add_summary(summary, generation)
 
         self.population.extend(self.generate_new_population())
+        self.target.update(self.ddqrn.sess, tau=1.0)
         self.model.save(self.path)
         if generation >= 11:
             exit()

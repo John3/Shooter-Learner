@@ -15,41 +15,32 @@ from tournament_selection_server import TournamentSelectionServer
 sess = tf.Session()
 
 ddqrn = DDQRN(sess, "main_DDQRN")
-ddqrn_target = target_ddqrn(DDQRN(sess, "target_DDQRN"), tf.trainable_variables())
+ddqrn_target = target_ddqrn(DDQRN(sess, "target_DDQRN"),
+                            [tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="main_DDQRN"),
+                             tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="target_DDQRN")])
 
 sess.run(tf.global_variables_initializer())
 
-ddqrn_target.update(sess)  # Set the target network to be equal to the primary network
+#ddqrn_target.update(sess)  # Apparently not necessary
 
 trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess)
 
 model = ModelSaver(ddqrn, trainer)
-
-host = EvolutionHost("host", model)
-population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer)
-#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
-
-model.ai_server = ai_server
 
 
 if cfg.load_model:
     model.load(cfg.save_path)
 
 initial_count = ddqrn.sess.run([ddqrn.train_count])[0]
-number_of_logs_to_train_on = 1000
 print("Loading logs...")
 logs = parse_logs_in_folder(cfg.log_folder)
 print("Training on %s game logs" % len(logs))
-start_time = time()
+time_file = open('times.dat', 'w')
 for p, log_file_pair in enumerate(logs):
+    start_time = time()
     if p < initial_count:
         print("Skipping log number %s" % p)
         continue
-    if p == number_of_logs_to_train_on:
-        end_time = time()
-        print("Training took %s seconds" % (end_time - start_time))
-        exit(0)
     log_file_0, log_file_1 = log_file_pair
     print("Training on log number %s..." % p, end="", flush=True)
     trainer.start_episode()
@@ -71,18 +62,29 @@ for p, log_file_pair in enumerate(logs):
             break
 
     train_count = ddqrn.sess.run([ddqrn.inc_train_count])[0]
-    #if train_count % 100 == 0:
-    #    model.save(cfg.save_path)
     trainer.end_episode()
     print(" Done!")
+    end_time = time()
+    print("Training took %s seconds" % (end_time - start_time))
+    time_file.write("%s %s\n" % (p, end_time - start_time))
 
     # Periodically save the model.
     if p % 50 == 0:
         model.save(cfg.save_path)
         print("Saved Model")
-
+time_file.close()
 model.save(cfg.save_path)
 print("Done training!")
+
+
+host = EvolutionHost("host", model)
+population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
+ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer, model)
+
+#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
+
+model.ai_server = ai_server
+
 
 # Assuming we have now done some kind of training.. Try to predict some actions!
 
