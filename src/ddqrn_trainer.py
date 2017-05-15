@@ -46,6 +46,8 @@ class DDQRNTrainer:
         self.episode_buffer = ExperienceBuffer(3500)
         self.j = 0 # The number of steps we have taken
         self.r_all = 0
+        self.total_q_out = 0
+        self.total_target_q = 0
 
     def end_episode(self):
         self.buffer.add(self.episode_buffer.buffer)

@@ -1,8 +1,12 @@
 import math
 
 # ------------ Training parameters --------------
+evolution = 0
+gradient = 1
 
-run_name = "BAIEvolution"
+server = gradient
+
+run_name = "Steiner Gradient"
 batch_size = 100  # Number of traces to use for each training step
 trace_length = 76  # How long each experience trace will be
 discount_factor = .99

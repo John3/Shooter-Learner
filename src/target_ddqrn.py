@@ -22,7 +22,7 @@ class target_ddqrn:
             op_holder = []
             for idx, var in enumerate(tfVars[0]):
                 op_holder.append(
-                    tfVars[1, idx].assign((var.value() * self.tau) + ((1 - self.tau) * tfVars[1, idx].value())))
+                    tfVars[1][idx].assign((var.value() * self.tau) + ((1 - self.tau) * tfVars[1][idx].value())))
             return op_holder
 
     # Couldn't this simply assign the target to the primary network? I.e. copy all the weights

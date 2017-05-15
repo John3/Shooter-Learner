@@ -22,3 +22,4 @@ model = ModelSaver(ddqrn, trainer)
 model.load(cfg.save_path)
 ddqrn_target.update(sess, tau=1.0)
 model.save(cfg.save_path)
+
