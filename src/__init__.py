@@ -77,11 +77,12 @@ model.save(cfg.save_path)
 print("Done training!")
 
 
-host = EvolutionHost("host", model)
-population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-ai_server = TournamentSelectionServer(ddqrn, ddqrn_target, population, model, trainer.train_writer)
-
-#ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
+if cfg.server == cfg.evolution:
+    host = EvolutionHost("host", model)
+    population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
+    ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer, model)
+elif cfg.server == cfg.gradient:
+    ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
 
 model.ai_server = ai_server
 
@@ -96,6 +97,6 @@ i = ddqrn.sess.run([ddqrn.train_count])[0]
 while True:
     server.receive_message(ai_server)
     if ai_server.game_has_ended:
-        if i % 5000 == 0 and type(ai_server) is AIServer:
-            ai_server.start_evaluation(100)
+        if i % 500 == 0 and type(ai_server) is AIServer:
+            ai_server.start_evaluation(200)
         i += 1

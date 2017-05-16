@@ -42,6 +42,7 @@ class ModelSaver:
         if type(self.ai_server) is TournamentSelectionServer:
             np.savez_compressed(path + "/evolution", population=self.ai_server.population,
                                 evaluated_population=self.ai_server.evaluated_population)
+        print('model Saved :D')
 
     def save_population(self, path):
         if not os.path.exists(path):

@@ -154,6 +154,8 @@ class TournamentSelectionServer:
         self.population.extend(self.generate_new_population())
         self.target.update(self.ddqrn.sess, tau=1.0)
         self.model.save(self.path)
+        if generation >= 11:
+            exit()
 
     def random_sample(self, count) -> List[Individual]:
         res = []
