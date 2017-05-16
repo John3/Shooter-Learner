@@ -79,7 +79,7 @@ print("Done training!")
 
 host = EvolutionHost("host", model)
 population = [host.individual.generate_offspring(i) for i in range(cfg.population_size(0))]
-ai_server = TournamentSelectionServer(ddqrn, population, model, trainer.train_writer, model)
+ai_server = TournamentSelectionServer(ddqrn, ddqrn_target, population, model, trainer.train_writer)
 
 #ai_server = AIServer(cfg.features, cfg.prediction_to_action, trainer, ddqrn, cfg.rew_funcs, model)
 
