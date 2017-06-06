@@ -3,10 +3,11 @@ import math
 # ------------ Training parameters --------------
 evolution = 0
 gradient = 1
+logtraining = 2
 
-server = gradient
+server = logtraining
 
-run_name = "Steiner Gradient"
+run_name = "Histogram_Copy_1"
 batch_size = 100  # Number of traces to use for each training step
 trace_length = 76  # How long each experience trace will be
 discount_factor = .99
@@ -14,9 +15,9 @@ discount_factor = .99
 train_freq = 4
 # How often do we train
 
-load_model = True
+load_model = False
 
-log_folder = "data/bai_vs_turing_small"
+log_folder = "data/game_logs"
 #log_folder = "data/bai_vs_turing"
 save_path = "./dqn"
 player_number = 0
