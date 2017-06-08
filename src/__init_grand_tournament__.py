@@ -1,5 +1,5 @@
-from src import GrandTournamentServer
-from src import SharpShooterServer
+from grand_tournament_server import GrandTournamentServer
+from sharpshooter_server import SharpShooterServer
 
 grand_server = GrandTournamentServer()
 

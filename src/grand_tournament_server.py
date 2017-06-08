@@ -1,16 +1,17 @@
 import json
 
 import tensorflow as tf
+import numpy as np
+import os
+
 from simple_ddqrn import DDQRN
-from target_ddqrn import target_ddqrn
-from ddqrn_trainer import DDQRNTrainer
-from model_saver import ModelSaver
 
 import parameter_config as cfg
 
+
 class GrandTournamentServer:
 
-    def __init__(self, matches_per_round=100):
+    def __init__(self, matches_per_round=200):
 
         self.ai_participants = [
             {"name": "FreksenThink", "rlAi": False},
@@ -18,9 +19,9 @@ class GrandTournamentServer:
             {"name": "ScottSteiner", "rlAi": False},
             {"name": "Turing", "rlAi": False},
             {"name": "BAI", "rlAi": False},
-            #{"name": "ScannerBot", "rlAi": False},
-            #{"name": "Kurt", "rlAi": False},
-            #{"name": "HundenBider", "rlAi": False},
+            {"name": "ScannerBot", "rlAi": False},
+            {"name": "Kurt", "rlAi": False},
+            {"name": "HundenBider", "rlAi": False},
             {"name": "RLFreksenThink", "rlAi": True},
             {"name": "RLBAI", "rlAi": True},
             {"name": "RLScottSteiner", "rlAi": True},
@@ -43,6 +44,15 @@ class GrandTournamentServer:
         self.current_player = 0
         self.current_opponent = 0
         self.score = [0, 0]
+        self.scores = []
+
+        if os.path.exists("tournament_save.npz"):
+            saved_data = np.load("tournament_save.npz")
+
+            self.scores = list(saved_data["scores"])
+            self.current_player = saved_data["current_player"]
+            self.current_opponent = saved_data["current_opponent"]
+            print(self.scores)
 
     def callback(self, msg):
         if msg["type"] == "instruction":
@@ -98,6 +108,16 @@ class GrandTournamentServer:
                 if self.match_count == self.matches_per_round:
                     print()
                     print("Round finished, score was %s" % self.score)
+                    self.scores.append(self.score)
+                    with open("tournament_score.txt", "a") as save_file:
+                        save_file.write("%s vs. %s: %s\n" % (
+                            self.ai_participants[self.current_player]["name"],
+                            self.ai_participants[self.current_opponent]["name"],
+                            self.score,
+                        ))
+                    np.savez("tournament_save.npz", scores=self.scores,
+                             current_player=self.current_player,
+                             current_opponent=self.current_opponent)
                     self.match_count = 0
                     self.score = [0, 0]
                     self.player_one_set = False
@@ -109,7 +129,7 @@ class GrandTournamentServer:
             player = int(msg["playerNumber"])
             fv = self.json_string_to_feature_vector(msg["feature_vector"])
 
-            ai = self.ai_participants[player]
+            ai = self.ai_participants[self.current_player if player == 0 else self.current_opponent]
 
             a, ai["ddqrn"].state = ai["ddqrn"].get_prediction_with_state(
                 input=[fv],
@@ -131,22 +151,28 @@ class GrandTournamentServer:
         return out
 
     def load_and_add_rl_participant(self, name):
-        sess = tf.Session()
+        print("Loading: %s" % name)
+        graph = tf.Graph()
+        sess = tf.Session(graph=graph)
 
-        ddqrn = DDQRN(sess, "main_DDQRN")
-        ddqrn_target = target_ddqrn(DDQRN(sess, "target_DDQRN"),
-                                    [tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="main_DDQRN"),
-                                     tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="target_DDQRN")])
+        with graph.as_default() as g:
+            with sess.as_default():
+                ddqrn = DDQRN(sess, "main_DDQRN")
 
-        sess.run(tf.global_variables_initializer())
+                sess.run(tf.global_variables_initializer())
 
-        trainer = DDQRNTrainer(ddqrn, ddqrn_target, sess)
+                saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES))
 
-        model = ModelSaver(ddqrn, trainer)
+        print('Loading Model...')
+        ckpt = tf.train.get_checkpoint_state("tournament_models/%s" % name)
+        if ckpt is None:
+            return
 
-        model.load("torunament_models/%s" % name)
+        saver.restore(sess, ckpt.model_checkpoint_path)
 
         next(x for x in self.ai_participants if x["name"] == name)["sess"] = sess
         next(x for x in self.ai_participants if x["name"] == name)["ddqrn"] = ddqrn
+
+        tf.reset_default_graph()
 
         return sess, ddqrn
