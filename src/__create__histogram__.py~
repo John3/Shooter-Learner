@@ -1,0 +1,5 @@
+with open("observations.dat") as obs:
+    with open("histogram.dat",w) as hist:
+        for i in range(10):
+            hist.write("%s %s\n"% (i,sum(i==int(c) for c in obs)))
+            

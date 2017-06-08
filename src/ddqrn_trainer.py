@@ -69,8 +69,8 @@ class DDQRNTrainer:
 
     def experience(self, s, a, r, s1, end):
         self.batch_size = min(len(self.buffer.buffer) - 1, cfg.batch_size)
-        if r != 0:
-            print("Experienced a reward of: %s" % r)
+        #if r != 0:
+            #print("Experienced a reward of: %s" % r)
         self.j += 1 # Increment the number of steps by one
         self.total_steps += 1
         # todo do we need this when we have it in the log_file? Maybe the log_file should be saved to an experience_buffer
